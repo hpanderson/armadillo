@@ -1,10 +1,12 @@
-// Copyright (C) 2008-2015 Conrad Sanderson
-// Copyright (C) 2008-2015 NICTA (www.nicta.com.au)
-// Copyright (C) 2012-2014 Ryan Curtin
+// Copyright (C) 2008-2015 National ICT Australia (NICTA)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// -------------------------------------------------------------------
+// 
+// Written by Conrad Sanderson - http://conradsanderson.id.au
+// Written by Ryan Curtin
 
 
 //! \addtogroup Mat
@@ -17,14 +19,11 @@ Mat<eT>::~Mat()
   {
   arma_extra_debug_sigprint_this(this);
   
-  if(mem_state == 0)
+  if( (mem_state == 0) && (n_elem > arma_config::mat_prealloc) )
     {
-    if(n_elem > arma_config::mat_prealloc)
-      {
-      memory::release( access::rw(mem) );
-      }
+    memory::release( access::rw(mem) );
     }
-    
+  
   if(arma_config::debug == true)
     {
     // try to expose buggy user code that accesses deleted objects
@@ -209,7 +208,7 @@ Mat<eT>::init_cold()
     }
   else
     {
-    arma_extra_debug_print("Mat::init(): allocating memory");
+    arma_extra_debug_print("Mat::init(): acquiring memory");
     
     access::rw(mem) = memory::acquire<eT>(n_elem);
     }
@@ -217,7 +216,6 @@ Mat<eT>::init_cold()
 
 
 
-//! internal matrix construction; if the requested size is small enough, memory from the stack is used. otherwise memory is allocated via 'new'
 template<typename eT>
 inline
 void
@@ -225,10 +223,7 @@ Mat<eT>::init_warm(uword in_n_rows, uword in_n_cols)
   {
   arma_extra_debug_sigprint( arma_boost::format("in_n_rows = %d, in_n_cols = %d") % in_n_rows % in_n_cols );
   
-  if( (n_rows == in_n_rows) && (n_cols == in_n_cols) )
-    {
-    return;
-    }
+  if( (n_rows == in_n_rows) && (n_cols == in_n_cols) )  { return; }
   
   bool  err_state = false;
   char* err_msg   = 0;
@@ -236,51 +231,19 @@ Mat<eT>::init_warm(uword in_n_rows, uword in_n_cols)
   const uhword t_vec_state = vec_state;
   const uhword t_mem_state = mem_state;
   
-  arma_debug_set_error
-    (
-    err_state,
-    err_msg,
-    (t_mem_state == 3),
-    "Mat::init(): size is fixed and hence cannot be changed"
-    );
+  arma_debug_set_error( err_state, err_msg, (t_mem_state == 3), "Mat::init(): size is fixed and hence cannot be changed" );
   
   if(t_vec_state > 0)
     {
     if( (in_n_rows == 0) && (in_n_cols == 0) )
       {
-      if(t_vec_state == 1)
-        {
-        in_n_cols = 1;
-        }
-      else
-      if(t_vec_state == 2)
-        {
-        in_n_rows = 1;
-        }
+      if(t_vec_state == 1)  { in_n_cols = 1; }
+      if(t_vec_state == 2)  { in_n_rows = 1; }
       }
     else
       {
-      if(t_vec_state == 1)
-        {
-        arma_debug_set_error
-          (
-          err_state,
-          err_msg,
-          (in_n_cols != 1),
-          "Mat::init(): requested size is not compatible with column vector layout"
-          );
-        }
-      else
-      if(t_vec_state == 2)
-        {
-        arma_debug_set_error
-          (
-          err_state,
-          err_msg,
-          (in_n_rows != 1),
-          "Mat::init(): requested size is not compatible with row vector layout"
-          );
-        }
+      if(t_vec_state == 1)  { arma_debug_set_error( err_state, err_msg, (in_n_cols != 1), "Mat::init(): requested size is not compatible with column vector layout" ); }
+      if(t_vec_state == 2)  { arma_debug_set_error( err_state, err_msg, (in_n_rows != 1), "Mat::init(): requested size is not compatible with row vector layout"    ); }
       }
     }
   
@@ -312,46 +275,56 @@ Mat<eT>::init_warm(uword in_n_rows, uword in_n_cols)
   if(old_n_elem == new_n_elem)
     {
     arma_extra_debug_print("Mat::init(): reusing memory");
-    
     access::rw(n_rows) = in_n_rows;
     access::rw(n_cols) = in_n_cols;
     }
-  else
+  else  // condition: old_n_elem != new_n_elem
     {
-    arma_debug_check
-      (
-      (t_mem_state == 2),
-      "Mat::init(): mismatch between size of auxiliary memory and requested size"
-      );
+    arma_debug_check( (t_mem_state == 2), "Mat::init(): mismatch between size of auxiliary memory and requested size" );
     
-    if(t_mem_state == 0)
+    if(new_n_elem < old_n_elem)  // reuse existing memory if possible
       {
-      if(old_n_elem > arma_config::mat_prealloc)
+      if( (t_mem_state == 0) && (new_n_elem <= arma_config::mat_prealloc) )
         {
-        arma_extra_debug_print("Mat::init(): freeing memory");
+        if(old_n_elem > arma_config::mat_prealloc)
+          {
+          arma_extra_debug_print("Mat::init(): releasing memory");
+          memory::release( access::rw(mem) );
+          }
         
-        memory::release( access::rw(mem) );
+        arma_extra_debug_print("Mat::init(): using local memory");
+        access::rw(mem) = mem_local;
+        }
+      else
+        {
+        arma_extra_debug_print("Mat::init(): reusing memory");
         }
       }
-    
-    
-    if(new_n_elem <= arma_config::mat_prealloc)
+    else  // condition: new_n_elem > old_n_elem
       {
-      arma_extra_debug_print("Mat::init(): using local memory");
+      if( (t_mem_state == 0) && (old_n_elem > arma_config::mat_prealloc) )
+        {
+        arma_extra_debug_print("Mat::init(): releasing memory");
+        memory::release( access::rw(mem) );
+        }
       
-      access::rw(mem) = mem_local;
-      }
-    else
-      {
-      arma_extra_debug_print("Mat::init(): allocating memory");
+      if(new_n_elem <= arma_config::mat_prealloc)
+        {
+        arma_extra_debug_print("Mat::init(): using local memory");
+        access::rw(mem) = mem_local;
+        }
+      else
+        {
+        arma_extra_debug_print("Mat::init(): acquiring memory");
+        access::rw(mem) = memory::acquire<eT>(new_n_elem);
+        }
       
-      access::rw(mem) = memory::acquire<eT>(new_n_elem);
+      access::rw(mem_state) = 0;
       }
-    
-    access::rw(n_rows)    = in_n_rows;
-    access::rw(n_cols)    = in_n_cols;
-    access::rw(n_elem)    = new_n_elem;
-    access::rw(mem_state) = 0;
+      
+    access::rw(n_rows) = in_n_rows;
+    access::rw(n_cols) = in_n_cols;
+    access::rw(n_elem) = new_n_elem;
     }
   }
 
@@ -860,12 +833,12 @@ Mat<eT>::operator=(const Mat<eT>& in_mat)
       {
       if(x_n_cols_found == false)
         {
-        x_n_cols       = (*it).size();
+        x_n_cols       = uword((*it).size());
         x_n_cols_found = true;
         }
       else
         {
-        arma_check( ((*it).size() != x_n_cols), "Mat::init(): inconsistent number of columns in initialiser list" );
+        arma_check( (uword((*it).size()) != x_n_cols), "Mat::init(): inconsistent number of columns in initialiser list" );
         }
       }
     
@@ -1105,50 +1078,49 @@ Mat<eT>::steal_mem(Mat<eT>& x)
   {
   arma_extra_debug_sigprint();
   
-  if(this != &x)
+  if(this == &x)  { return; }
+  
+  const uword  x_n_rows    = x.n_rows;
+  const uword  x_n_cols    = x.n_cols;
+  const uword  x_n_elem    = x.n_elem;
+  const uhword x_vec_state = x.vec_state;
+  const uhword x_mem_state = x.mem_state;
+  
+  const uhword t_vec_state = vec_state;
+  const uhword t_mem_state = mem_state;
+  
+  bool layout_ok = false;
+  
+  if(t_vec_state == x_vec_state)
     {
-    const uword  x_n_rows    = x.n_rows;
-    const uword  x_n_cols    = x.n_cols;
-    const uword  x_n_elem    = x.n_elem;
-    const uhword x_vec_state = x.vec_state;
-    const uhword x_mem_state = x.mem_state;
+    layout_ok = true;
+    }
+  else
+    {
+    if( (t_vec_state == 1) && (x_n_cols == 1) )  { layout_ok = true; }
+    if( (t_vec_state == 2) && (x_n_rows == 1) )  { layout_ok = true; }
+    }
+  
+  
+  if( (t_mem_state <= 1) && ( ((x_mem_state == 0) && (x_n_elem > arma_config::mat_prealloc)) || (x_mem_state == 1) ) && layout_ok )
+    {
+    reset();
     
-    const uhword t_vec_state = vec_state;
-    const uhword t_mem_state = mem_state;
+    access::rw(n_rows)    = x_n_rows;
+    access::rw(n_cols)    = x_n_cols;
+    access::rw(n_elem)    = x_n_elem;
+    access::rw(mem_state) = x_mem_state;
+    access::rw(mem)       = x.mem;
     
-    bool layout_ok = false;
-    
-    if(t_vec_state == x_vec_state)
-      {
-      layout_ok = true;
-      }
-    else
-      {
-      if( (t_vec_state == 1) && (x_n_cols == 1) )  { layout_ok = true; }
-      if( (t_vec_state == 2) && (x_n_rows == 1) )  { layout_ok = true; }
-      }
-    
-    
-    if( (t_mem_state <= 1) && ( ((x_mem_state == 0) && (x_n_elem > arma_config::mat_prealloc)) || (x_mem_state == 1) ) && layout_ok )
-      {
-      reset();
-      
-      access::rw(n_rows)    = x_n_rows;
-      access::rw(n_cols)    = x_n_cols;
-      access::rw(n_elem)    = x_n_elem;
-      access::rw(mem_state) = x_mem_state;
-      access::rw(mem)       = x.mem;
-      
-      access::rw(x.n_rows)    = 0;
-      access::rw(x.n_cols)    = 0;
-      access::rw(x.n_elem)    = 0;
-      access::rw(x.mem_state) = 0;
-      access::rw(x.mem)       = 0;
-      }
-    else
-      {
-      (*this).operator=(x);
-      }
+    access::rw(x.n_rows)    = 0;
+    access::rw(x.n_cols)    = 0;
+    access::rw(x.n_elem)    = 0;
+    access::rw(x.mem_state) = 0;
+    access::rw(x.mem)       = 0;
+    }
+  else
+    {
+    (*this).operator=(x);
     }
   }
 
@@ -3837,6 +3809,146 @@ Mat<eT>::each_row(const Base<uword, T1>& indices) const
 
 
 
+#if defined(ARMA_USE_CXX11)
+  
+  //! apply a lambda function to each column, where each column is interpreted as a column vector
+  template<typename eT>
+  inline
+  const Mat<eT>&
+  Mat<eT>::each_col(const std::function< void(Col<eT>&) >& F)
+    {
+    arma_extra_debug_sigprint();
+    
+    for(uword ii=0; ii < n_cols; ++ii)
+      {
+      Col<eT> tmp(colptr(ii), n_rows, false, true);
+      F(tmp);
+      }
+    
+    return *this;
+    }
+  
+  
+  
+  template<typename eT>
+  inline
+  const Mat<eT>&
+  Mat<eT>::each_col(const std::function< void(const Col<eT>&) >& F) const
+    {
+    arma_extra_debug_sigprint();
+    
+    for(uword ii=0; ii < n_cols; ++ii)
+      {
+      const Col<eT> tmp(colptr(ii), n_rows, false, true);
+      F(tmp);
+      }
+    
+    return *this;
+    }
+  
+  
+  
+  //! apply a lambda function to each row, where each row is interpreted as a row vector
+  template<typename eT>
+  inline
+  const Mat<eT>&
+  Mat<eT>::each_row(const std::function< void(Row<eT>&) >& F)
+    {
+    arma_extra_debug_sigprint();
+    
+    podarray<eT> array1(n_cols);
+    podarray<eT> array2(n_cols);
+    
+    Row<eT> tmp1( array1.memptr(), n_cols, false, true );
+    Row<eT> tmp2( array2.memptr(), n_cols, false, true );
+    
+    eT* tmp1_mem = tmp1.memptr();
+    eT* tmp2_mem = tmp2.memptr();
+    
+    uword ii, jj;
+    
+    for(ii=0, jj=1; jj < n_rows; ii+=2, jj+=2)
+      {
+      for(uword col_id = 0; col_id < n_cols; ++col_id)
+        {
+        const eT* col_mem = colptr(col_id);
+        
+        tmp1_mem[col_id] = col_mem[ii];
+        tmp2_mem[col_id] = col_mem[jj];
+        }
+      
+      F(tmp1);
+      F(tmp2);
+      
+      for(uword col_id = 0; col_id < n_cols; ++col_id)
+        {
+        eT* col_mem = colptr(col_id);
+        
+        col_mem[ii] = tmp1_mem[col_id];
+        col_mem[jj] = tmp2_mem[col_id];
+        }
+      }
+    
+    if(ii < n_rows)
+      {
+      tmp1 = (*this).row(ii);
+      
+      F(tmp1);
+      
+      (*this).row(ii) = tmp1;
+      }
+    
+    return *this;
+    }
+  
+  
+  
+  template<typename eT>
+  inline
+  const Mat<eT>&
+  Mat<eT>::each_row(const std::function< void(const Row<eT>&) >& F) const
+    {
+    arma_extra_debug_sigprint();
+    
+    podarray<eT> array1(n_cols);
+    podarray<eT> array2(n_cols);
+    
+    Row<eT> tmp1( array1.memptr(), n_cols, false, true );
+    Row<eT> tmp2( array2.memptr(), n_cols, false, true );
+    
+    eT* tmp1_mem = tmp1.memptr();
+    eT* tmp2_mem = tmp2.memptr();
+    
+    uword ii, jj;
+    
+    for(ii=0, jj=1; jj < n_rows; ii+=2, jj+=2)
+      {
+      for(uword col_id = 0; col_id < n_cols; ++col_id)
+        {
+        const eT* col_mem = colptr(col_id);
+        
+        tmp1_mem[col_id] = col_mem[ii];
+        tmp2_mem[col_id] = col_mem[jj];
+        }
+      
+      F(tmp1);
+      F(tmp2);
+      }
+    
+    if(ii < n_rows)
+      {
+      tmp1 = (*this).row(ii);
+      
+      F(tmp1);
+      }
+    
+    return *this;
+    }
+  
+#endif
+
+
+
 //! creation of diagview (diagonal)
 template<typename eT>
 arma_inline
@@ -6085,8 +6197,9 @@ Mat<eT>::reshape(const SizeMat& s)
 
 
 
-//!< don't use this in new code; kept only for compatibility with old code
+//!< NOTE: don't use this in new code; kept only for compatibility with old code
 template<typename eT>
+arma_deprecated
 inline
 void
 Mat<eT>::reshape(const uword in_rows, const uword in_cols, const uword dim)
@@ -6113,6 +6226,67 @@ Mat<eT>::copy_size(const Base<eT2, expr>& X)
   const uword X_n_cols = P.get_n_cols();
   
   init_warm(X_n_rows, X_n_cols);
+  }
+
+
+
+//! apply a functor to each element
+template<typename eT>
+template<typename functor>
+inline
+const Mat<eT>&
+Mat<eT>::for_each(functor F)
+  {
+  arma_extra_debug_sigprint();
+  
+  eT* data = memptr();
+  
+  const uword N = n_elem;
+  
+  uword ii, jj;
+  
+  for(ii=0, jj=1; jj < N; ii+=2, jj+=2)
+    {
+    F(data[ii]);
+    F(data[jj]);
+    }
+  
+  if(ii < N)
+    {
+    F(data[ii]);
+    }
+  
+  return *this;
+  }
+
+
+
+template<typename eT>
+template<typename functor>
+inline
+const Mat<eT>&
+Mat<eT>::for_each(functor F) const
+  {
+  arma_extra_debug_sigprint();
+  
+  const eT* data = memptr();
+  
+  const uword N = n_elem;
+  
+  uword ii, jj;
+  
+  for(ii=0, jj=1; jj < N; ii+=2, jj+=2)
+    {
+    F(data[ii]);
+    F(data[jj]);
+    }
+  
+  if(ii < N)
+    {
+    F(data[ii]);
+    }
+  
+  return *this;
   }
 
 
@@ -6708,11 +6882,11 @@ Mat<eT>::save(const std::string name, const file_type type, const bool print_sta
       break;
     
     default:
-      arma_warn(print_status, "Mat::save(): unsupported file type");
+      if(print_status)  { arma_debug_warn("Mat::save(): unsupported file type"); }
       save_okay = false;
     }
   
-  arma_warn( (print_status && (save_okay == false)), "Mat::save(): couldn't write to ", name);
+  if(print_status && (save_okay == false))  { arma_debug_warn("Mat::save(): couldn't write to ", name); }
   
   return save_okay;
   }
@@ -6756,11 +6930,11 @@ Mat<eT>::save(std::ostream& os, const file_type type, const bool print_status) c
       break;
     
     default:
-      arma_warn(print_status, "Mat::save(): unsupported file type");
+      if(print_status)  { arma_debug_warn("Mat::save(): unsupported file type"); }
       save_okay = false;
     }
   
-  arma_warn( (print_status && (save_okay == false)), "Mat::save(): couldn't write to the given stream");
+  if(print_status && (save_okay == false))  { arma_debug_warn("Mat::save(): couldn't write to the given stream"); }
   
   return save_okay;
   }
@@ -6813,7 +6987,7 @@ Mat<eT>::load(const std::string name, const file_type type, const bool print_sta
       break;
 
     default:
-      arma_warn(print_status, "Mat::load(): unsupported file type");
+      if(print_status)  { arma_debug_warn("Mat::load(): unsupported file type"); }
       load_okay = false;
     }
   
@@ -6821,11 +6995,11 @@ Mat<eT>::load(const std::string name, const file_type type, const bool print_sta
     {
     if(err_msg.length() > 0)
       {
-      arma_warn(true, "Mat::load(): ", err_msg, name);
+      arma_debug_warn("Mat::load(): ", err_msg, name);
       }
     else
       {
-      arma_warn(true, "Mat::load(): couldn't read ", name);
+      arma_debug_warn("Mat::load(): couldn't read ", name);
       }
     }
   
@@ -6881,7 +7055,7 @@ Mat<eT>::load(std::istream& is, const file_type type, const bool print_status)
       break;
     
     default:
-      arma_warn(print_status, "Mat::load(): unsupported file type");
+      if(print_status)  { arma_debug_warn("Mat::load(): unsupported file type"); }
       load_okay = false;
     }
   
@@ -6890,11 +7064,11 @@ Mat<eT>::load(std::istream& is, const file_type type, const bool print_status)
     {
     if(err_msg.length() > 0)
       {
-      arma_warn(true, "Mat::load(): ", err_msg, "the given stream");
+      arma_debug_warn("Mat::load(): ", err_msg, "the given stream");
       }
     else
       {
-      arma_warn(true, "Mat::load(): couldn't load from the given stream");
+      arma_debug_warn("Mat::load(): couldn't load from the given stream");
       }
     }
   

@@ -1,9 +1,11 @@
-// Copyright (C) 2008-2014 Conrad Sanderson
-// Copyright (C) 2008-2014 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2015 National ICT Australia (NICTA)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// -------------------------------------------------------------------
+// 
+// Written by Conrad Sanderson - http://conradsanderson.id.au
 
 
 //! \addtogroup Base
@@ -26,11 +28,20 @@ inline
 void
 Base<elem_type,derived>::print(const std::string extra_text) const
   {
-  const Proxy<derived> P( (*this).get_ref() );
-  
-  const quasi_unwrap< typename Proxy<derived>::stored_type > tmp(P.Q);
-  
-  tmp.M.impl_print(extra_text);
+  if(is_op_strans<derived>::value || is_op_htrans<derived>::value)
+    {
+    const Proxy<derived> P( (*this).get_ref() );
+    
+    const quasi_unwrap< typename Proxy<derived>::stored_type > tmp(P.Q);
+    
+    tmp.M.impl_print(extra_text);
+    }
+  else
+    {
+    const quasi_unwrap<derived> tmp( (*this).get_ref() );
+    
+    tmp.M.impl_print(extra_text);
+    }
   }
 
 
@@ -40,11 +51,20 @@ inline
 void
 Base<elem_type,derived>::print(std::ostream& user_stream, const std::string extra_text) const
   {
-  const Proxy<derived> P( (*this).get_ref() );
-  
-  const quasi_unwrap< typename Proxy<derived>::stored_type > tmp(P.Q);
-  
-  tmp.M.impl_print(user_stream, extra_text);
+  if(is_op_strans<derived>::value || is_op_htrans<derived>::value)
+    {
+    const Proxy<derived> P( (*this).get_ref() );
+    
+    const quasi_unwrap< typename Proxy<derived>::stored_type > tmp(P.Q);
+    
+    tmp.M.impl_print(user_stream, extra_text);
+    }
+  else
+    {
+    const quasi_unwrap<derived> tmp( (*this).get_ref() );
+    
+    tmp.M.impl_print(user_stream, extra_text);
+    }
   }
   
 
@@ -54,11 +74,20 @@ inline
 void
 Base<elem_type,derived>::raw_print(const std::string extra_text) const
   {
-  const Proxy<derived> P( (*this).get_ref() );
-  
-  const quasi_unwrap< typename Proxy<derived>::stored_type > tmp(P.Q);
-  
-  tmp.M.impl_raw_print(extra_text);
+  if(is_op_strans<derived>::value || is_op_htrans<derived>::value)
+    {
+    const Proxy<derived> P( (*this).get_ref() );
+    
+    const quasi_unwrap< typename Proxy<derived>::stored_type > tmp(P.Q);
+    
+    tmp.M.impl_raw_print(extra_text);
+    }
+  else
+    {
+    const quasi_unwrap<derived> tmp( (*this).get_ref() );
+    
+    tmp.M.impl_raw_print(extra_text);
+    }
   }
 
 
@@ -68,11 +97,20 @@ inline
 void
 Base<elem_type,derived>::raw_print(std::ostream& user_stream, const std::string extra_text) const
   {
-  const Proxy<derived> P( (*this).get_ref() );
-  
-  const quasi_unwrap< typename Proxy<derived>::stored_type > tmp(P.Q);
-  
-  tmp.M.impl_raw_print(user_stream, extra_text);
+  if(is_op_strans<derived>::value || is_op_htrans<derived>::value)
+    {
+    const Proxy<derived> P( (*this).get_ref() );
+    
+    const quasi_unwrap< typename Proxy<derived>::stored_type > tmp(P.Q);
+    
+    tmp.M.impl_raw_print(user_stream, extra_text);
+    }
+  else
+    {
+    const quasi_unwrap<derived> tmp( (*this).get_ref() );
+    
+    tmp.M.impl_raw_print(user_stream, extra_text);
+    }
   }
 
 
@@ -171,9 +209,9 @@ Base<elem_type,derived>::max(uword& row_of_max_val, uword& col_of_max_val) const
 template<typename derived>
 arma_inline
 const Op<derived,op_inv>
-Base_inv_yes<derived>::i(const bool slow) const
+Base_inv_yes<derived>::i() const
   {
-  return Op<derived,op_inv>( static_cast<const derived&>(*this), ((slow == false) ? 0 : 1), 0 );
+  return Op<derived,op_inv>(static_cast<const derived&>(*this));
   }
 
 
@@ -181,13 +219,19 @@ Base_inv_yes<derived>::i(const bool slow) const
 template<typename derived>
 arma_inline
 const Op<derived,op_inv>
-Base_inv_yes<derived>::i(const char* method) const
+Base_inv_yes<derived>::i(const bool) const   // argument kept only for compatibility with old user code
   {
-  const char sig = (method != NULL) ? method[0] : char(0);
-  
-  arma_debug_check( ((sig != 's') && (sig != 'f')), "Base::i(): unknown method specified" );
-  
-  return Op<derived,op_inv>( static_cast<const derived&>(*this), ((sig == 'f') ? 0 : 1), 0 );
+  return Op<derived,op_inv>(static_cast<const derived&>(*this));
+  }
+
+
+
+template<typename derived>
+arma_inline
+const Op<derived,op_inv>
+Base_inv_yes<derived>::i(const char*) const   // argument kept only for compatibility with old user code
+  {
+  return Op<derived,op_inv>(static_cast<const derived&>(*this));
   }
 
 

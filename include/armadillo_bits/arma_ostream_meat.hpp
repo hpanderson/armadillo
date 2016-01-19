@@ -1,10 +1,12 @@
-// Copyright (C) 2008-2015 Conrad Sanderson
-// Copyright (C) 2008-2015 NICTA (www.nicta.com.au)
-// Copyright (C) 2012 Ryan Curtin
+// Copyright (C) 2008-2015 National ICT Australia (NICTA)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// -------------------------------------------------------------------
+// 
+// Written by Conrad Sanderson - http://conradsanderson.id.au
+// Written by Ryan Curtin
 
 
 //! \addtogroup arma_ostream
@@ -470,9 +472,11 @@ arma_ostream::print(std::ostream& o, const Cube<eT>& x, const bool modify)
     {
     for(uword slice=0; slice < x.n_slices; ++slice)
       {
+      const Mat<eT> tmp(const_cast<eT*>(x.slice_memptr(slice)), x.n_rows, x.n_cols, false);
+      
       o << "[cube slice " << slice << ']' << '\n';
       o.width(cell_width);
-      arma_ostream::print(o, x.slice(slice), false);
+      arma_ostream::print(o, tmp, false);
       o << '\n';
       }
     }

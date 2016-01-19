@@ -1,10 +1,12 @@
-// Copyright (C) 2008-2014 Conrad Sanderson
-// Copyright (C) 2008-2014 NICTA (www.nicta.com.au)
-// Copyright (C) 2009-2010 Ian Cullinan
+// Copyright (C) 2008-2015 National ICT Australia (NICTA)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// -------------------------------------------------------------------
+// 
+// Written by Conrad Sanderson - http://conradsanderson.id.au
+// Written by Ian Cullinan
 
 
 //! \addtogroup field
@@ -19,7 +21,7 @@ field<oT>::~field()
   
   delete_objects();
   
-  if(n_elem > sizeof(mem_local)/sizeof(oT*) )
+  if(n_elem > field_prealloc_n_elem::val)
     {
     delete [] mem;
     }
@@ -253,6 +255,183 @@ field<oT>::set_size(const SizeCube& s)
 
 
 
+#if defined(ARMA_USE_CXX11)
+  
+  template<typename oT>
+  inline
+  field<oT>::field(const std::initializer_list<oT>& list)
+    : n_rows  (0)
+    , n_cols  (0)
+    , n_slices(0)
+    , n_elem  (0)
+    {
+    arma_extra_debug_sigprint_this(this);
+    
+    (*this).operator=(list);
+    }
+  
+  
+  
+  template<typename oT>
+  inline
+  const field<oT>&
+  field<oT>::operator=(const std::initializer_list<oT>& list)
+    {
+    arma_extra_debug_sigprint();
+    
+    const uword N = uword(list.size());
+    
+    set_size(1, N);
+    
+    const oT* item_ptr = list.begin();
+    
+    for(uword i=0; i<N; ++i)
+      {
+      operator[](i) = item_ptr[i];
+      }
+    
+    return *this;
+    }
+  
+  
+  
+  template<typename oT>
+  inline
+  field<oT>::field(const std::initializer_list< std::initializer_list<oT> >& list)
+    : n_rows  (0)
+    , n_cols  (0)
+    , n_slices(0)
+    , n_elem  (0)
+    {
+    arma_extra_debug_sigprint_this(this);
+    
+    (*this).operator=(list);
+    }
+  
+  
+  
+  template<typename oT>
+  inline
+  const field<oT>&
+  field<oT>::operator=(const std::initializer_list< std::initializer_list<oT> >& list)
+    {
+    arma_extra_debug_sigprint();
+    
+    uword x_n_rows = uword(list.size());
+    uword x_n_cols = 0;
+    
+    bool x_n_cols_found = false;
+    
+    auto it     = list.begin();
+    auto it_end = list.end();
+    
+    for(; it != it_end; ++it)
+      {
+      if(x_n_cols_found == false)
+        {
+        x_n_cols       = uword( (*it).size() );
+        x_n_cols_found = true;
+        }
+      else
+        {
+        arma_check( (uword((*it).size()) != x_n_cols), "Mat::init(): inconsistent number of columns in initialiser list" );
+        }
+      }
+    
+    field<oT>& t = (*this);
+    
+    t.set_size(x_n_rows, x_n_cols);
+    
+    uword row_num = 0;
+    
+    auto row_it     = list.begin();
+    auto row_it_end = list.end();
+    
+    for(; row_it != row_it_end; ++row_it)
+      {
+      uword col_num = 0;
+      
+      auto col_it     = (*row_it).begin();
+      auto col_it_end = (*row_it).end();
+      
+      for(; col_it != col_it_end; ++col_it)
+        {
+        t.at(row_num, col_num) = (*col_it);
+        ++col_num;
+        }
+      
+      ++row_num;
+      }
+    
+    return *this;
+    }
+  
+  
+  
+  template<typename oT>
+  inline
+  field<oT>::field(field<oT>&& X)
+    : n_rows  (X.n_rows  )
+    , n_cols  (X.n_cols  )
+    , n_slices(X.n_slices)
+    , n_elem  (X.n_elem  )
+    {
+    arma_extra_debug_sigprint(arma_boost::format("this = %x   X = %x") % this % &X);
+    
+    if(n_elem > field_prealloc_n_elem::val)
+      {
+      mem = X.mem;
+      }
+    else
+      {
+      arrayops::copy(&mem_local[0], &X.mem_local[0], n_elem);
+      mem = mem_local;
+      }
+    
+    access::rw(X.n_rows  ) = 0;
+    access::rw(X.n_cols  ) = 0;
+    access::rw(X.n_slices) = 0;
+    access::rw(X.n_elem  ) = 0;
+    access::rw(X.mem     ) = 0;
+    }
+  
+  
+  
+  template<typename oT>
+  inline
+  const field<oT>&
+  field<oT>::operator=(field<oT>&& X)
+    {
+    arma_extra_debug_sigprint(arma_boost::format("this = %x   X = %x") % this % &X);
+    
+    access::rw(n_rows  ) = X.n_rows;
+    access::rw(n_cols  ) = X.n_cols;
+    access::rw(n_slices) = X.n_slices;
+    access::rw(n_elem  ) = X.n_elem;
+    
+    if(n_elem > field_prealloc_n_elem::val)
+      {
+      mem = X.mem;
+      }
+    else
+      {
+      arrayops::copy(&mem_local[0], &X.mem_local[0], n_elem);
+      mem = mem_local;
+      }
+    
+    access::rw(X.n_rows  ) = 0;
+    access::rw(X.n_cols  ) = 0;
+    access::rw(X.n_elem  ) = 0;
+    access::rw(X.n_slices) = 0;
+    access::rw(X.mem     ) = 0;
+    
+    return *this;
+    }
+  
+#endif
+
+
+
 //! change the field to have the specified dimensions (data is not preserved)
 template<typename oT>
 template<typename oT2>
@@ -275,9 +454,9 @@ field<oT>::operator[] (const uword i)
   {
   return (*mem[i]);
   }
-  
-  
-  
+
+
+
 //! linear element accessor (treats the field as a vector); no bounds check
 template<typename oT>
 arma_inline
@@ -297,9 +476,9 @@ field<oT>::at(const uword i)
   {
   return (*mem[i]);
   }
-  
-  
-  
+
+
+
 //! linear element accessor (treats the field as a vector); no bounds check
 template<typename oT>
 arma_inline
@@ -320,9 +499,9 @@ field<oT>::operator() (const uword i)
   arma_debug_check( (i >= n_elem), "field::operator(): index out of bounds");
   return (*mem[i]);
   }
-  
-  
-  
+
+
+
 //! linear element accessor (treats the field as a vector); bounds checking not done when ARMA_NO_DEBUG is defined
 template<typename oT>
 arma_inline
@@ -1201,10 +1380,86 @@ field<oT>::print(std::ostream& user_stream, const std::string extra_text) const
 
 
 
+#if defined(ARMA_USE_CXX11)
+  
+  //! apply a lambda function to each object
+  template<typename oT>
+  inline
+  const field<oT>&
+  field<oT>::for_each(const std::function< void(oT&) >& F)
+    {
+    arma_extra_debug_sigprint();
+    
+    for(uword i=0; i < n_elem; ++i)
+      {
+      F(operator[](i));
+      }
+    
+    return *this;
+    }
+  
+  
+  
+  template<typename oT>
+  inline
+  const field<oT>&
+  field<oT>::for_each(const std::function< void(const oT&) >& F) const
+    {
+    arma_extra_debug_sigprint();
+    
+    for(uword i=0; i < n_elem; ++i)
+      {
+      F(operator[](i));
+      }
+    
+    return *this;
+    }
+  
+#else
+  
+  //! apply a functor to each object
+  template<typename oT>
+  template<typename functor>
+  inline
+  const field<oT>&
+  field<oT>::for_each(functor F)
+    {
+    arma_extra_debug_sigprint();
+    
+    for(uword i=0; i < n_elem; ++i)
+      {
+      F(operator[](i));
+      }
+    
+    return *this;
+    }
+  
+  
+  
+  template<typename oT>
+  template<typename functor>
+  inline
+  const field<oT>&
+  field<oT>::for_each(functor F) const
+    {
+    arma_extra_debug_sigprint();
+    
+    for(uword i=0; i < n_elem; ++i)
+      {
+      F(operator[](i));
+      }
+    
+    return *this;
+    }
+  
+#endif
+
+
+
 //! fill the field with an object
 template<typename oT>
 inline
-void
+const field<oT>&
 field<oT>::fill(const oT& x)
   {
   arma_extra_debug_sigprint();
@@ -1215,6 +1470,8 @@ field<oT>::fill(const oT& x)
     {
     t[i] = x;
     }
+  
+  return *this;
   }
 
 
@@ -1466,11 +1723,11 @@ field<oT>::save(const std::string name, const file_type type, const bool print_s
     {
     if(err_msg.length() > 0)
       {
-      arma_warn(true, "field::save(): ", err_msg, name);
+      arma_debug_warn("field::save(): ", err_msg, name);
       }
     else
       {
-      arma_warn(true, "field::save(): couldn't write to ", name);
+      arma_debug_warn("field::save(): couldn't write to ", name);
       }
     }
   
@@ -1493,11 +1750,11 @@ field<oT>::save(std::ostream& os, const file_type type, const bool print_status)
     {
     if(err_msg.length() > 0)
       {
-      arma_warn(true, "field::save(): ", err_msg, "[ostream]");
+      arma_debug_warn("field::save(): ", err_msg, "[ostream]");
       }
     else
       {
-      arma_warn(true, "field::save(): couldn't write to [ostream]");
+      arma_debug_warn("field::save(): couldn't write to [ostream]");
       }
     }
   
@@ -1520,11 +1777,11 @@ field<oT>::load(const std::string name, const file_type type, const bool print_s
     {
     if(err_msg.length() > 0)
       {
-      arma_warn(true, "field::load(): ", err_msg, name);
+      arma_debug_warn("field::load(): ", err_msg, name);
       }
     else
       {
-      arma_warn(true, "field::load(): couldn't read from ", name);
+      arma_debug_warn("field::load(): couldn't read from ", name);
       }
     }
   
@@ -1552,11 +1809,11 @@ field<oT>::load(std::istream& is, const file_type type, const bool print_status)
     {
     if(err_msg.length() > 0)
       {
-      arma_warn(true, "field::load(): ", err_msg, "[istream]");
+      arma_debug_warn("field::load(): ", err_msg, "[istream]");
       }
     else
       {
-      arma_warn(true, "field::load(): couldn't read from [istream]");
+      arma_debug_warn("field::load(): couldn't read from [istream]");
       }
     }
   
@@ -1668,7 +1925,6 @@ field<oT>::init(const uword n_rows_in, const uword n_cols_in)
 
 
 
-//! internal field construction; if the requested size is small enough, memory from the stack is used. otherwise memory is allocated via 'new'
 template<typename oT>
 inline
 void
@@ -1706,12 +1962,12 @@ field<oT>::init(const uword n_rows_in, const uword n_cols_in, const uword n_slic
     {
     delete_objects();
     
-    if(n_elem > sizeof(mem_local)/sizeof(oT*) )
+    if(n_elem > field_prealloc_n_elem::val)
       {
       delete [] mem;
       }
     
-    if(n_elem_new <= sizeof(mem_local)/sizeof(oT*) )
+    if(n_elem_new <= field_prealloc_n_elem::val)
       {
       mem = mem_local;
       }
@@ -1737,9 +1993,7 @@ field<oT>::init(const uword n_rows_in, const uword n_cols_in, const uword n_slic
       }
     
     create_objects();
-    
     }
-  
   }
 
 
@@ -1759,7 +2013,6 @@ field<oT>::delete_objects()
       mem[i] = 0;
       }
     }
-  
   }
 
 
@@ -1775,7 +2028,6 @@ field<oT>::create_objects()
     {
     mem[i] = new oT;
     }
-  
   }
 
 
@@ -2115,9 +2367,9 @@ field_aux::reset_objects(field< Col<eT> >& x)
     (*(x.mem[i])).reset();
     }
   }
-  
-  
-  
+
+
+
 template<typename eT>
 inline
 void

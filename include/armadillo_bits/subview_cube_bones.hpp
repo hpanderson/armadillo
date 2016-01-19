@@ -1,9 +1,11 @@
-// Copyright (C) 2008-2015 Conrad Sanderson
-// Copyright (C) 2008-2015 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2015 National ICT Australia (NICTA)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// -------------------------------------------------------------------
+// 
+// Written by Conrad Sanderson - http://conradsanderson.id.au
 
 
 //! \addtogroup subview_cube
@@ -79,8 +81,16 @@ class subview_cube : public BaseCube<eT, subview_cube<eT> >
   inline static void schur_inplace(Mat<eT>& out, const subview_cube& in);
   inline static void   div_inplace(Mat<eT>& out, const subview_cube& in);
   
+  template<typename functor> inline void  for_each(functor F);
+  template<typename functor> inline void  for_each(functor F) const;
+  
   template<typename functor> inline void transform(functor F);
   template<typename functor> inline void     imbue(functor F);
+  
+  #if defined(ARMA_USE_CXX11)
+  inline void each_slice(const std::function< void(      Mat<eT>&) >& F);
+  inline void each_slice(const std::function< void(const Mat<eT>&) >& F) const;
+  #endif
   
   inline void fill(const eT val);
   inline void zeros();

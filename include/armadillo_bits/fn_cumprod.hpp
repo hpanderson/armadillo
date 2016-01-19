@@ -1,9 +1,11 @@
-// Copyright (C) 2015 Conrad Sanderson
-// Copyright (C) 2015 NICTA (www.nicta.com.au)
+// Copyright (C) 2015 National ICT Australia (NICTA)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// -------------------------------------------------------------------
+// 
+// Written by Conrad Sanderson - http://conradsanderson.id.au
 
 
 //! \addtogroup fn_cumprod
@@ -17,15 +19,13 @@ typename
 enable_if2
   <
   is_arma_type<T1>::value,
-  const Op<T1, op_cumprod_simple>
+  const Op<T1, op_cumprod_default>
   >::result
 cumprod(const T1& X)
   {
   arma_extra_debug_sigprint();
   
-  const uword dim = resolves_to_rowvector<T1>::value ? 1 : 0;
-  
-  return Op<T1, op_cumprod_simple>(X, dim, 0);
+  return Op<T1, op_cumprod_default>(X);
   }
 
 

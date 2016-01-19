@@ -1,9 +1,11 @@
-// Copyright (C) 2008-2014 Conrad Sanderson
-// Copyright (C) 2008-2014 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2014 National ICT Australia (NICTA)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// -------------------------------------------------------------------
+// 
+// Written by Conrad Sanderson - http://conradsanderson.id.au
 
 
 //! \addtogroup op_dot
@@ -146,9 +148,9 @@ op_dot::direct_dot(const uword n_elem, const eT* const A, const eT* const B)
     {
     #if defined(ARMA_USE_ATLAS)
       {
-      arma_extra_debug_print("atlas::cx_cblas_dot()");
+      arma_extra_debug_print("atlas::cblas_cx_dot()");
       
-      return atlas::cx_cblas_dot(n_elem, A, B);
+      return atlas::cblas_cx_dot(n_elem, A, B);
       }
     #elif defined(ARMA_USE_BLAS)
       {

@@ -1,9 +1,11 @@
-// Copyright (C) 2008-2014 Conrad Sanderson
-// Copyright (C) 2008-2014 NICTA (www.nicta.com.au)
+// Copyright (C) 2008-2015 National ICT Australia (NICTA)
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// -------------------------------------------------------------------
+// 
+// Written by Conrad Sanderson - http://conradsanderson.id.au
 
 
 //! \addtogroup op_inv
@@ -14,7 +16,7 @@
 template<typename eT>
 inline
 void
-op_inv::apply(Mat<eT>& out, const Mat<eT>& A, const bool slow)
+op_inv::apply(Mat<eT>& out, const Mat<eT>& A)
   {
   arma_extra_debug_sigprint();
   
@@ -22,7 +24,7 @@ op_inv::apply(Mat<eT>& out, const Mat<eT>& A, const bool slow)
   // - auxlib::inv() copies A to out before inversion
   // - for 2x2 and 3x3 matrices the code is alias safe
   
-  bool status = auxlib::inv(out, A, slow);
+  bool status = auxlib::inv(out, A);
   
   if(status == false)
     {
@@ -51,9 +53,7 @@ op_inv::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv>& X)
     }
   else
     {
-    const uword mode = X.aux_uword_a;
-    
-    status = (mode == 0) ? auxlib::inv(out, X.m) : auxlib::inv(out, X.m, true);
+    status = auxlib::inv(out, X.m);
     }
     
   if(status == false)
@@ -76,7 +76,9 @@ op_inv::apply_diagmat(Mat<typename T1::elem_type>& out, const T1& X)
   
   const diagmat_proxy<T1> A(X);
   
-  const uword N = A.n_elem;
+  arma_debug_check( (A.n_rows != A.n_cols), "inv(): given matrix must be square sized" );
+  
+  const uword N = (std::min)(A.n_rows, A.n_cols);
   
   bool status = true;
   
