@@ -1,11 +1,17 @@
-// Copyright (C) 2013-2015 National ICT Australia (NICTA)
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-// -------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Written by Conrad Sanderson - http://conradsanderson.id.au
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup SizeCube
@@ -32,7 +38,7 @@ SizeCube::operator[](const uword dim) const
   if(dim == 1)  { return n_cols;   }
   if(dim == 2)  { return n_slices; }
   
-  return ( (n_rows == 0) || (n_cols == 0) || (n_slices == 0) ) ? uword(0) : uword(1);
+  return uword(1);
   }
 
 
@@ -47,7 +53,7 @@ SizeCube::operator()(const uword dim) const
   
   arma_debug_check(true, "size(): index out of bounds");
   
-  return ( (n_rows == 0) || (n_cols == 0) || (n_slices == 0) ) ? uword(0) : uword(1);
+  return uword(1);
   }
 
 
@@ -99,9 +105,7 @@ SizeCube::operator-(const SizeCube& s) const
   const uword out_n_cols   = (n_cols   > s.n_cols  ) ? (n_cols   - s.n_cols  ) : uword(0);
   const uword out_n_slices = (n_slices > s.n_slices) ? (n_slices - s.n_slices) : uword(0);
   
-  const uword k = ( (out_n_rows == uword(0)) || (out_n_cols == uword(0)) || (out_n_slices == uword(0)) ) ? uword(0) : uword(1);
-  
-  return SizeCube( (k*out_n_rows), (k*out_n_cols), (k*out_n_slices) );
+  return SizeCube(out_n_rows, out_n_cols, out_n_slices);
   }
 
 
@@ -123,9 +127,7 @@ SizeCube::operator-(const uword val) const
   const uword out_n_cols   = (n_cols   > val) ? (n_cols   - val) : uword(0);
   const uword out_n_slices = (n_slices > val) ? (n_slices - val) : uword(0);
   
-  const uword k = ( (out_n_rows == uword(0)) || (out_n_cols == uword(0)) || (out_n_slices == uword(0)) ) ? uword(0) : uword(1);
-  
-  return SizeCube( (k*out_n_rows), (k*out_n_cols), (k*out_n_slices) );
+  return SizeCube(out_n_rows, out_n_cols, out_n_slices);
   }
 
 

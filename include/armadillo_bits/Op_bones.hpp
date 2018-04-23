@@ -1,11 +1,17 @@
-// Copyright (C) 2008-2015 National ICT Australia (NICTA)
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-// -------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Written by Conrad Sanderson - http://conradsanderson.id.au
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup Op
@@ -50,6 +56,7 @@ class Op : public Base<typename T1::elem_type, Op<T1, op_type> >
     T1::is_row &&
       (
          is_same_type<op_type, op_sort_default>::yes
+      || is_same_type<op_type, op_shift_default>::yes
       || is_same_type<op_type, op_shuffle_default>::yes
       || is_same_type<op_type, op_cumsum_default>::yes
       || is_same_type<op_type, op_cumprod_default>::yes
@@ -58,6 +65,7 @@ class Op : public Base<typename T1::elem_type, Op<T1, op_type> >
       || is_same_type<op_type, op_unique>::yes
       || is_same_type<op_type, op_diff_default>::yes
       || is_same_type<op_type, op_normalise_vec>::yes
+      || is_same_type<op_type, op_chi2rnd>::yes
       )
     )
     ||
@@ -85,6 +93,7 @@ class Op : public Base<typename T1::elem_type, Op<T1, op_type> >
     T1::is_col &&
       (
          is_same_type<op_type, op_sort_default>::yes
+      || is_same_type<op_type, op_shift_default>::yes
       || is_same_type<op_type, op_shuffle_default>::yes
       || is_same_type<op_type, op_cumsum_default>::yes
       || is_same_type<op_type, op_cumprod_default>::yes
@@ -93,6 +102,7 @@ class Op : public Base<typename T1::elem_type, Op<T1, op_type> >
       || is_same_type<op_type, op_unique>::yes
       || is_same_type<op_type, op_diff_default>::yes
       || is_same_type<op_type, op_normalise_vec>::yes
+      || is_same_type<op_type, op_chi2rnd>::yes
       )
     )
     ||

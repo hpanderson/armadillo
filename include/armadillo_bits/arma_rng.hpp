@@ -1,11 +1,17 @@
-// Copyright (C) 2013-2015 National ICT Australia (NICTA)
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-// -------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Written by Conrad Sanderson - http://conradsanderson.id.au
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup arma_rng
@@ -79,6 +85,7 @@ arma_rng::set_seed(const arma_rng::seed_type val)
 
 
 
+arma_cold
 inline
 void
 arma_rng::set_seed_random()
@@ -220,15 +227,15 @@ struct arma_rng::randi
     {
     #if   defined(ARMA_RNG_ALT)
       {
-      return arma_rng_alt::randi_fill(mem, N, a, b);
+      arma_rng_alt::randi_fill(mem, N, a, b);
       }
     #elif defined(ARMA_USE_EXTERN_CXX11_RNG)
       {
-      return arma_rng_cxx11_instance.randi_fill(mem, N, a, b);
+      arma_rng_cxx11_instance.randi_fill(mem, N, a, b);
       }
     #else
       {
-      return arma_rng_cxx98::randi_fill(mem, N, a, b);
+      arma_rng_cxx98::randi_fill(mem, N, a, b);
       }
     #endif
     }
@@ -263,20 +270,20 @@ struct arma_rng::randu
   void
   fill(eT* mem, const uword N)
     {
-    uword i,j;
+    uword j;
     
-    for(i=0, j=1; j < N; i+=2, j+=2)
+    for(j=1; j < N; j+=2)
       {
       const eT tmp_i = eT( arma_rng::randu<eT>() );
       const eT tmp_j = eT( arma_rng::randu<eT>() );
       
-      mem[i] = tmp_i;
-      mem[j] = tmp_j;
+      (*mem) = tmp_i;  mem++;
+      (*mem) = tmp_j;  mem++;
       }
     
-    if(i < N)
+    if((j-1) < N)
       {
-      mem[i] = eT( arma_rng::randu<eT>() );
+      (*mem) = eT( arma_rng::randu<eT>() );
       }
     }
   };
@@ -359,7 +366,7 @@ struct arma_rng::randn
   inline
   static
   void
-  fill(eT* mem, const uword N)
+  fill_simple(eT* mem, const uword N)
     {
     uword i, j;
     
@@ -374,6 +381,56 @@ struct arma_rng::randn
       }
     }
   
+  
+  inline
+  static
+  void
+  fill(eT* mem, const uword N)
+    {
+    #if defined(ARMA_USE_CXX11) && defined(ARMA_USE_OPENMP)
+      {
+      if((N < 1024) || omp_in_parallel())  { arma_rng::randn<eT>::fill_simple(mem, N); return; }
+      
+      typedef std::mt19937_64::result_type seed_type;
+      
+      const uword n_threads = uword( mp_thread_limit::get() );
+      
+      std::vector< std::mt19937_64                  > engine(n_threads);
+      std::vector< std::normal_distribution<double> >  distr(n_threads);
+      
+      for(uword t=0; t < n_threads; ++t)
+        {
+        std::mt19937_64& t_engine = engine[t];
+        
+        t_engine.seed( seed_type(t) + seed_type(arma_rng::randi<seed_type>()) );
+        }
+      
+      const uword chunk_size = N / n_threads;
+      
+      #pragma omp parallel for schedule(static) num_threads(int(n_threads))
+      for(uword t=0; t < n_threads; ++t)
+        {
+        const uword start = (t+0) * chunk_size;
+        const uword endp1 = (t+1) * chunk_size;
+        
+        std::mt19937_64&                  t_engine = engine[t];
+        std::normal_distribution<double>& t_distr  =  distr[t];
+        
+        for(uword i=start; i < endp1; ++i)  { mem[i] = eT( t_distr(t_engine)); }
+        }
+      
+      std::mt19937_64&                  t0_engine = engine[0];
+      std::normal_distribution<double>& t0_distr  =  distr[0];
+      
+      for(uword i=(n_threads*chunk_size); i < N; ++i)  { mem[i] = eT( t0_distr(t0_engine)); }
+      }
+    #else
+      {
+      arma_rng::randn<eT>::fill_simple(mem, N);
+      }
+    #endif
+    }
+  
   };
 
 
@@ -384,7 +441,8 @@ struct arma_rng::randn< std::complex<T> >
   inline
   operator std::complex<T> () const
     {
-    T a, b;
+    T a;
+    T b;
     
     arma_rng::randn<T>::dual_val(a, b);
     
@@ -395,7 +453,7 @@ struct arma_rng::randn< std::complex<T> >
   inline
   static
   void
-  fill(std::complex<T>* mem, const uword N)
+  fill_simple(std::complex<T>* mem, const uword N)
     {
     for(uword i=0; i < N; ++i)
       {
@@ -403,6 +461,67 @@ struct arma_rng::randn< std::complex<T> >
       }
     }
   
+  
+  inline
+  static
+  void
+  fill(std::complex<T>* mem, const uword N)
+    {
+    #if defined(ARMA_USE_CXX11) && defined(ARMA_USE_OPENMP)
+      {
+      if((N < 512) || omp_in_parallel())  { arma_rng::randn< std::complex<T> >::fill_simple(mem, N); return; }
+      
+      typedef std::mt19937_64::result_type seed_type;
+      
+      const uword n_threads = uword( mp_thread_limit::get() );
+      
+      std::vector< std::mt19937_64                  > engine(n_threads);
+      std::vector< std::normal_distribution<double> >  distr(n_threads);
+      
+      for(uword t=0; t < n_threads; ++t)
+        {
+        std::mt19937_64& t_engine = engine[t];
+        
+        t_engine.seed( seed_type(t) + seed_type(arma_rng::randi<seed_type>()) );
+        }
+      
+      const uword chunk_size = N / n_threads;
+      
+      #pragma omp parallel for schedule(static) num_threads(int(n_threads))
+      for(uword t=0; t < n_threads; ++t)
+        {
+        const uword start = (t+0) * chunk_size;
+        const uword endp1 = (t+1) * chunk_size;
+        
+        std::mt19937_64&                  t_engine = engine[t];
+        std::normal_distribution<double>& t_distr  =  distr[t];
+        
+        for(uword i=start; i < endp1; ++i)
+          {
+          const T val1 = T( t_distr(t_engine) );
+          const T val2 = T( t_distr(t_engine) );
+          
+          mem[i] = std::complex<T>(val1, val2);
+          }
+        }
+      
+      std::mt19937_64&                  t0_engine = engine[0];
+      std::normal_distribution<double>& t0_distr  =  distr[0];
+      
+      for(uword i=(n_threads*chunk_size); i < N; ++i)
+        {
+        const T val1 = T( t0_distr(t0_engine) );
+        const T val2 = T( t0_distr(t0_engine) );
+        
+        mem[i] = std::complex<T>(val1, val2);
+        }
+      }
+    #else
+      {
+      arma_rng::randn< std::complex<T> >::fill_simple(mem, N);
+      }
+    #endif
+    }
   };
 
 

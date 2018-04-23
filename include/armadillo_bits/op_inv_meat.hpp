@@ -1,11 +1,17 @@
-// Copyright (C) 2008-2015 National ICT Australia (NICTA)
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-// -------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Written by Conrad Sanderson - http://conradsanderson.id.au
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup op_inv
@@ -28,8 +34,8 @@ op_inv::apply(Mat<eT>& out, const Mat<eT>& A)
   
   if(status == false)
     {
-    out.reset();
-    arma_bad("inv(): matrix appears to be singular");
+    out.soft_reset();
+    arma_stop_runtime_error("inv(): matrix seems singular");
     }
   }
 
@@ -58,8 +64,8 @@ op_inv::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv>& X)
     
   if(status == false)
     {
-    out.reset();
-    arma_bad("inv(): matrix appears to be singular");
+    out.soft_reset();
+    arma_stop_runtime_error("inv(): matrix seems singular");
     }
   }
 
@@ -128,8 +134,8 @@ op_inv_tr::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv_tr>& X)
   
   if(status == false)
     {
-    out.reset();
-    arma_bad("inv(): matrix appears to be singular");
+    out.soft_reset();
+    arma_stop_runtime_error("inv(): matrix seems singular");
     }
   }
 
@@ -143,12 +149,12 @@ op_inv_sympd::apply(Mat<typename T1::elem_type>& out, const Op<T1,op_inv_sympd>&
   {
   arma_extra_debug_sigprint();
   
-  const bool status = auxlib::inv_sympd(out, X.m, X.aux_uword_a);
+  const bool status = auxlib::inv_sympd(out, X.m);
   
   if(status == false)
     {
-    out.reset();
-    arma_bad("inv_sympd(): matrix appears to be singular");
+    out.soft_reset();
+    arma_stop_runtime_error("inv_sympd(): matrix is singular or not positive definite");
     }
   }
 

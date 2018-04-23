@@ -1,11 +1,17 @@
-// Copyright (C) 2008-2012 National ICT Australia (NICTA)
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-// -------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Written by Conrad Sanderson - http://conradsanderson.id.au
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup constants
@@ -107,7 +113,7 @@ namespace priv
 
 
 //! various constants.
-//! Physical constants taken from NIST 2010 CODATA values, and some from WolframAlpha (values provided as of 2009-06-23)
+//! Physical constants taken from NIST 2014 CODATA values, and some from WolframAlpha (values provided as of 2009-06-23)
 //! http://physics.nist.gov/cuu/Constants
 //! http://www.wolframalpha.com
 //! See also http://en.wikipedia.org/wiki/Physical_constant
@@ -123,6 +129,7 @@ class Datum
   static const eT euler;    //!< Euler's constant, aka Euler-Mascheroni constant
   static const eT gratio;   //!< golden ratio
   static const eT sqrt2;    //!< square root of 2
+  static const eT sqrt2pi;  //!< square root of 2*pi
   static const eT eps;      //!< the difference between 1 and the least value greater than 1 that is representable
   static const eT log_min;  //!< log of the minimum representable value
   static const eT log_max;  //!< log of the maximum representable value
@@ -171,6 +178,7 @@ template<typename eT> const eT Datum<eT>::e         = eT(2.718281828459045235360
 template<typename eT> const eT Datum<eT>::euler     = eT(0.5772156649015328606065120900824024310421593359399235988057672348848677267776646709369470632917467495);
 template<typename eT> const eT Datum<eT>::gratio    = eT(1.6180339887498948482045868343656381177203091798057628621354486227052604628189024497072072041893911374);
 template<typename eT> const eT Datum<eT>::sqrt2     = eT(1.4142135623730950488016887242096980785696718753769480731766797379907324784621070388503875343276415727);
+template<typename eT> const eT Datum<eT>::sqrt2pi   = eT(2.5066282746310005024157652848110452530069867406099383166299235763422936546078419749465958383780572661);
 template<typename eT> const eT Datum<eT>::eps       = std::numeric_limits<eT>::epsilon();
 template<typename eT> const eT Datum<eT>::log_min   = std::log(std::numeric_limits<eT>::min());
 template<typename eT> const eT Datum<eT>::log_max   = std::log(std::numeric_limits<eT>::max());

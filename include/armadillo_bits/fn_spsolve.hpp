@@ -1,12 +1,17 @@
-// Copyright (C) 2015 National ICT Australia (NICTA)
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-// -------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Written by Conrad Sanderson - http://conradsanderson.id.au
-// Written by Ryan Curtin
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup fn_spsolve
@@ -42,12 +47,12 @@ spsolve_helper
   
   bool status = false;
   
+  const superlu_opts& opts = (settings.id == 1) ? static_cast<const superlu_opts&>(settings) : superlu_opts();
+  
+  arma_debug_check( ( (opts.pivot_thresh < double(0)) || (opts.pivot_thresh > double(1)) ), "spsolve(): pivot_thresh out of bounds" );
+  
   if(sig == 's')  // SuperLU solver
     {
-    const superlu_opts& opts = (settings.id == 1) ? static_cast<const superlu_opts&>(settings) : superlu_opts();
-    
-    arma_debug_check( ( (opts.pivot_thresh < double(0)) || (opts.pivot_thresh > double(1)) ), "spsolve(): pivot_thresh out of bounds" );
-    
     if( (opts.equilibrate == false) && (opts.refine == superlu_opts::REF_NONE) )
       {
       status = sp_auxlib::spsolve_simple(out, A.get_ref(), B.get_ref(), opts);
@@ -60,7 +65,10 @@ spsolve_helper
   else
   if(sig == 'l')  // brutal LAPACK solver
     {
-    if(settings.id != 0)  { arma_debug_warn("spsolve(): ignoring settings not applicable to LAPACK based solver"); }
+    if( (settings.id != 0) && ((opts.symmetric) || (opts.pivot_thresh != double(1.0))) )
+      {
+      arma_debug_warn("spsolve(): ignoring settings not applicable to LAPACK based solver");
+      }
     
     Mat<eT> AA;
     
@@ -83,17 +91,29 @@ spsolve_helper
       {
       arma_debug_check( (AA.n_rows != AA.n_cols), "spsolve(): matrix A must be square sized" );
       
-      status = auxlib::solve_square_refine(out, rcond, AA, B.get_ref(), false);
+      uword flags = solve_opts::flag_none;
+      
+      if( (opts.equilibrate == false) && (opts.refine == superlu_opts::REF_NONE) )
+        {
+        flags |= solve_opts::flag_fast;
+        }
+      else
+      if(opts.equilibrate == true)
+        {
+        flags |= solve_opts::flag_equilibrate;
+        }
+      
+      status = glue_solve_gen::apply(out, AA, B.get_ref(), flags);
       }
     }
   
   
   if(status == false)
     {
-    if(rcond > T(0))  { arma_debug_warn("spsolve(): system appears singular (rcond: ", rcond, ")"); }
-    else              { arma_debug_warn("spsolve(): system appears singular");                      }
+    if(rcond > T(0))  { arma_debug_warn("spsolve(): system seems singular (rcond: ", rcond, ")"); }
+    else              { arma_debug_warn("spsolve(): system seems singular");                      }
     
-    out.reset();
+    out.soft_reset();
     }
   
   return status;
@@ -125,6 +145,7 @@ spsolve
 
 
 template<typename T1, typename T2>
+arma_warn_unused
 inline
 Mat<typename T1::elem_type>
 spsolve
@@ -147,7 +168,7 @@ spsolve
   
   if(status == false)
     {
-    arma_bad("spsolve(): solution not found");
+    arma_stop_runtime_error("spsolve(): solution not found");
     }
   
   return out;

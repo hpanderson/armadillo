@@ -1,12 +1,17 @@
-// Copyright (C) 2008-2015 National ICT Australia (NICTA)
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-// -------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Written by Conrad Sanderson - http://conradsanderson.id.au
-// Written by Ian Cullinan
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup field
@@ -48,11 +53,11 @@ class field
   inline ~field();
   inline  field();
   
-  inline                  field(const field& x);
-  inline const field& operator=(const field& x);
+  inline            field(const field& x);
+  inline field& operator=(const field& x);
   
-  inline                  field(const subview_field<oT>& x);
-  inline const field& operator=(const subview_field<oT>& x);
+  inline            field(const subview_field<oT>& x);
+  inline field& operator=(const subview_field<oT>& x);
   
   inline explicit field(const uword n_elem_in);
   inline explicit field(const uword n_rows_in, const uword n_cols_in);
@@ -67,14 +72,14 @@ class field
   inline void  set_size(const SizeCube& s);
   
   #if defined(ARMA_USE_CXX11)
-  inline                  field(const std::initializer_list<oT>& list);
-  inline const field& operator=(const std::initializer_list<oT>& list);
+  inline            field(const std::initializer_list<oT>& list);
+  inline field& operator=(const std::initializer_list<oT>& list);
   
-  inline                  field(const std::initializer_list< std::initializer_list<oT> >& list);
-  inline const field& operator=(const std::initializer_list< std::initializer_list<oT> >& list);
+  inline            field(const std::initializer_list< std::initializer_list<oT> >& list);
+  inline field& operator=(const std::initializer_list< std::initializer_list<oT> >& list);
   
-  inline                  field(field&& X);
-  inline const field& operator=(field&& X);
+  inline            field(field&& X);
+  inline field& operator=(field&& X);
   #endif
   
   template<typename oT2>
@@ -189,18 +194,18 @@ class field
   arma_inline arma_warn_unused bool in_range(const uword   in_row, const uword in_col, const uword in_slice, const SizeCube& s) const;
   
   
-  inline bool save(const std::string   name, const file_type type = arma_binary, const bool print_status = true) const;
-  inline bool save(      std::ostream& os,   const file_type type = arma_binary, const bool print_status = true) const;
+  inline arma_cold bool save(const std::string   name, const file_type type = arma_binary, const bool print_status = true) const;
+  inline arma_cold bool save(      std::ostream& os,   const file_type type = arma_binary, const bool print_status = true) const;
   
-  inline bool load(const std::string   name, const file_type type = auto_detect, const bool print_status = true);
-  inline bool load(      std::istream& is,   const file_type type = auto_detect, const bool print_status = true);
+  inline arma_cold bool load(const std::string   name, const file_type type = auto_detect, const bool print_status = true);
+  inline arma_cold bool load(      std::istream& is,   const file_type type = auto_detect, const bool print_status = true);
   
   
-  inline bool quiet_save(const std::string   name, const file_type type = arma_binary) const;
-  inline bool quiet_save(      std::ostream& os,   const file_type type = arma_binary) const;
+  inline arma_cold bool quiet_save(const std::string   name, const file_type type = arma_binary) const;
+  inline arma_cold bool quiet_save(      std::ostream& os,   const file_type type = arma_binary) const;
   
-  inline bool quiet_load(const std::string   name, const file_type type = auto_detect);
-  inline bool quiet_load(      std::istream& is,   const file_type type = auto_detect);
+  inline arma_cold bool quiet_load(const std::string   name, const file_type type = auto_detect);
+  inline arma_cold bool quiet_load(      std::istream& is,   const file_type type = auto_detect);
   
   
   // for container-like functionality

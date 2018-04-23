@@ -1,26 +1,26 @@
 
-# Copyright (C) 2008-2015 National ICT Australia (NICTA)
+# Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+# Copyright 2008-2016 National ICT Australia (NICTA)
 # 
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
-# -------------------------------------------------------------------
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
 # 
-# Written by Conrad Sanderson - http://conradsanderson.id.au
-# Written by Ryan Curtin
-# Written by Clement Creusot
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------
 
 
 
-cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
-set(ARMA_MAJOR 6)
-set(ARMA_MINOR 400)
-set(ARMA_PATCH 3)
-set(ARMADILLO_VERSION ${ARMA_MAJOR}.${ARMA_MINOR}.${ARMA_PATCH})
-
-message(STATUS "Configuring Armadillo ${ARMADILLO_VERSION}")
-
+project(armadillo CXX C)
+include(CheckIncludeFileCXX)
+include(CheckLibraryExists)
 
 ## Set ARMA_USE_WRAPPER to false if you're getting linking errors when compiling your programs,
 ## or if you prefer to directly link with BLAS and/or LAPACK.
@@ -38,39 +38,119 @@ set(ARMA_USE_ATLAS            false)
 set(ARMA_USE_HDF5_ALT         false)
 set(ARMA_USE_ARPACK           false)
 set(ARMA_USE_EXTERN_CXX11_RNG false)
-set(ARMA_USE_SUPERLU          false)  # Caveat: only SuperLU version 4.3 can be used!
+set(ARMA_USE_SUPERLU          false)  # Caveat: only SuperLU version 5.x can be used!
 
-project(armadillo CXX)
+## NOTE: OpenBLAS appears to have its own LAPACK functions,
+## NOTE: but on some systems the installed version of OpenBLAS
+## NOTE: has been modified not to include LAPACK functions.
+## NOTE: As the presence of LAPACK functions in OpenBLAS can't be guaranteed,
+## NOTE: this installer script requires LAPACK to be present on the system
+## NOTE: in order to enable the use of LAPACK functions by Armadillo.
+## NOTE: This installer will link with OpenBLAS first,
+## NOTE: so if a full version of OpenBLAS is actually present on the system,
+## NOTE: the linker should make use of LAPACK functions from OpenBLAS
+## NOTE: instead of standard LAPACK.
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake_aux/Modules/")
 
-include(CheckIncludeFileCXX)
-include(CheckLibraryExists)
+## extract version from sources
 
-option(BUILD_SHARED_LIBS "build shared library" ON)
-option(DETECT_HDF5 "Detect HDF5 and include HDF5 support, if found" OFF)
+set(ARMA_VERSION_FILE_NAME "${PROJECT_SOURCE_DIR}/include/armadillo_bits/arma_version.hpp")
+
+if(NOT EXISTS ${ARMA_VERSION_FILE_NAME})
+  message(FATAL_ERROR "Can't read ${ARMA_VERSION_FILE_NAME}")
+endif()
+
+file(READ ${ARMA_VERSION_FILE_NAME} ARMA_VERSION_FILE_CONTENTS)
+string(REGEX REPLACE ".*#define ARMA_VERSION_MAJOR ([0-9]+).*" "\\1" ARMA_VERSION_MAJOR "${ARMA_VERSION_FILE_CONTENTS}")
+string(REGEX REPLACE ".*#define ARMA_VERSION_MINOR ([0-9]+).*" "\\1" ARMA_VERSION_MINOR "${ARMA_VERSION_FILE_CONTENTS}")
+string(REGEX REPLACE ".*#define ARMA_VERSION_PATCH ([0-9]+).*" "\\1" ARMA_VERSION_PATCH "${ARMA_VERSION_FILE_CONTENTS}")
+
+message(STATUS "Configuring Armadillo ${ARMA_VERSION_MAJOR}.${ARMA_VERSION_MINOR}.${ARMA_VERSION_PATCH}")
+
+
+# As Red Hat Enterprise Linux (and related systems such as Fedora)
+# does not search /usr/local/lib by default, we need to place the
+# library in either /usr/lib or /usr/lib64
+
+if(NOT APPLE)
+  if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    message(STATUS "*** CMAKE_INSTALL_PREFIX was initalised by cmake to the default value of ${CMAKE_INSTALL_PREFIX}")
+    message(STATUS "*** CMAKE_INSTALL_PREFIX changed to /usr")
+    set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Standard install prefix" FORCE)
+  endif()
+endif()
+
+
+# Adhere to GNU filesystem layout conventions
+include(GNUInstallDirs)
+
+# deprecated options
+set(INSTALL_LIB_DIR     "" CACHE STRING "deprecated; use CMAKE_INSTALL_LIBDIR instead")
+set(INSTALL_INCLUDE_DIR "" CACHE STRING "deprecated; use CMAKE_INSTALL_INCLUDEDIR instead")
+set(INSTALL_DATA_DIR    "" CACHE STRING "deprecated; use CMAKE_INSTALL_DATADIR instead")
+set(INSTALL_BIN_DIR     "" CACHE STRING "deprecated; use CMAKE_INSTALL_BINDIR instead")
+
+if(INSTALL_LIB_DIR)
+  message(STATUS "*** INSTALL_LIB_DIR is deprecated; use CMAKE_INSTALL_LIBDIR instead")
+  set(CMAKE_INSTALL_LIBDIR "${INSTALL_LIB_DIR}")
+  GNUInstallDirs_get_absolute_install_dir(CMAKE_INSTALL_FULL_LIBDIR CMAKE_INSTALL_LIBDIR)
+endif()
+
+if(INSTALL_INCLUDE_DIR)
+  message(STATUS "*** INSTALL_INCLUDE_DIR is deprecated; use CMAKE_INSTALL_INCLUDEDIR instead")
+  set(CMAKE_INSTALL_INCLUDEDIR "${INSTALL_INCLUDE_DIR}")
+  GNUInstallDirs_get_absolute_install_dir(CMAKE_INSTALL_FULL_INCLUDEDIR CMAKE_INSTALL_INCLUDEDIR)
+endif()
+
+if(INSTALL_DATA_DIR)
+  message(STATUS "*** INSTALL_DATA_DIR is deprecated; use CMAKE_INSTALL_DATADIR instead")
+  set(CMAKE_INSTALL_DATADIR "${INSTALL_DATA_DIR}")
+endif()
+
+if(INSTALL_BIN_DIR)
+  message(STATUS "*** INSTALL_BIN_DIR is deprecated; use CMAKE_INSTALL_BINDIR instead")
+  set(CMAKE_INSTALL_BINDIR "${INSTALL_BIN_DIR}")
+endif()
+
+
+if(MSVC)
+  option(BUILD_SHARED_LIBS "build shared library" OFF)
+else()
+  option(BUILD_SHARED_LIBS "build shared library" ON)
+endif()
+
+option(DETECT_HDF5 "Detect HDF5 and include HDF5 support, if found" ON)
+
+
+if(WIN32)
+  message(STATUS "")
+  message(STATUS "*** WARNING: automatic installation is experimental for this platform.")
+  message(STATUS "*** WARNING: if anything breaks, you get to keep all the pieces.")
+  message(STATUS "*** WARNING: manual installation is described in README.txt")
+  message(STATUS "")
+endif()
+
+if(MSVC AND BUILD_SHARED_LIBS)
+  message(STATUS "")
+  message(STATUS "*** WARNING: building shared library with MSVC is not supported." )
+  message(STATUS "*** WARNING: if anything breaks, you get to keep all the pieces.")
+  message(STATUS "")
+endif()
+
 
 message(STATUS "CMAKE_SYSTEM_NAME          = ${CMAKE_SYSTEM_NAME}"         )
 message(STATUS "CMAKE_CXX_COMPILER_ID      = ${CMAKE_CXX_COMPILER_ID}"     )
 message(STATUS "CMAKE_CXX_COMPILER_VERSION = ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "CMAKE_COMPILER_IS_GNUCXX   = ${CMAKE_COMPILER_IS_GNUCXX}"  )
-
-
-if(WIN32)
-  message(STATUS "")
-  message(STATUS "WARNING:")
-  message(STATUS "Automatic installation is currently not available for this platform.")
-  message(STATUS "Please use the manual installation, as described in the README.txt file.")
-  message(STATUS "You can also use the 'include' folder directly, but you may want to edit")
-  message(STATUS "'include/armadillo_bits/config.hpp' if you have LAPACK installed.")
-  message(STATUS "")
-endif()
-
+message(STATUS "BUILD_SHARED_LIBS          = ${BUILD_SHARED_LIBS}"         )
+message(STATUS "DETECT_HDF5                = ${DETECT_HDF5}"               )
 
 
 ##
 ## Find LAPACK and BLAS libraries, or their optimised versions
 ##
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake_aux/Modules/")
 
 if(APPLE)
   
@@ -86,6 +166,8 @@ if(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     message(STATUS "Clang compiler on MacOS X detected. Added '-stdlib=libc++' to compiler flags")
   endif()
+  
+  set(CMAKE_MACOSX_RPATH 1)
   
 else()
   
@@ -204,14 +286,17 @@ else()
 endif()
 
 
-# set(DETECT_HDF5 true)
+find_package(PkgConfig)
 
-## uncomment the above line to enable the detection of the HDF5 library;
-## you can also enable HDF5 detection directly on the command line:
-## cmake -D DETECT_HDF5=true .
+
+# set(DETECT_HDF5 false)
+
+## uncomment the above line to disable the detection of the HDF5 library;
+## you can also disable HDF5 detection directly on the command line:
+## cmake -D DETECT_HDF5=false .
 
 if(DETECT_HDF5)
-  find_package(HDF5 QUIET)
+  find_package(HDF5 QUIET COMPONENTS C)
 
   if(NOT HDF5_FOUND)
     # On Debian systems, the HDF5 package has been split into multiple packages
@@ -219,7 +304,6 @@ if(DETECT_HDF5)
     # are hidden somewhere very odd that the FindHDF5.cmake script will not
     # find.  Thus, we'll also quickly check pkgconfig to see if there is
     # information on what to use there.
-    find_package(PkgConfig)
     if (PKG_CONFIG_FOUND)
       pkg_check_modules(HDF5 hdf5)
       # But using pkgconfig is a little weird because HDF5_LIBRARIES won't be
@@ -245,10 +329,14 @@ if(DETECT_HDF5)
     # can use the first element in the list.  Issue a status message, too, just
     # for good measure.
     list(GET HDF5_INCLUDE_DIRS 0 ARMA_HDF5_INCLUDE_DIR)
-    message(STATUS "Set ARMA_HDF5_INCLUDE_DIR to ${ARMA_HDF5_INCLUDE_DIR}")
+    message(STATUS "ARMA_HDF5_INCLUDE_DIR = ${ARMA_HDF5_INCLUDE_DIR}")
+    message(STATUS "")
+    message(STATUS "*** If use of HDF5 is causing problems,")
+    message(STATUS "*** rerun cmake with HDF5 detection disabled:")
+    message(STATUS "*** cmake -D DETECT_HDF5=false .")
+    message(STATUS "")
   endif()
 endif()
-
 
 include(ARMA_FindARPACK)
 message(STATUS "ARPACK_FOUND = ${ARPACK_FOUND}")
@@ -258,7 +346,7 @@ if(ARPACK_FOUND)
   set(ARMA_LIBS ${ARMA_LIBS} ${ARPACK_LIBRARY})
 endif()
 
-include(ARMA_FindSuperLU)
+include(ARMA_FindSuperLU5)
 message(STATUS "SuperLU_FOUND = ${SuperLU_FOUND}")
 
 if(SuperLU_FOUND)
@@ -299,13 +387,13 @@ include_directories(${PROJECT_BINARY_DIR}/tmp/include/ ${CMAKE_REQUIRED_INCLUDES
 
 ## work around a silly limitation in Mac OS X
 if(APPLE)
-  if(${ARMA_MINOR} GREATER 99)
-    math(EXPR ARMA_MINOR_ALT "${ARMA_MINOR} / 10")
+  if(${ARMA_VERSION_MINOR} GREATER 99)
+    math(EXPR ARMA_VERSION_MINOR_ALT "${ARMA_VERSION_MINOR} / 10")
   else()
-    set(ARMA_MINOR_ALT ${ARMA_MINOR})
+    set(ARMA_VERSION_MINOR_ALT ${ARMA_VERSION_MINOR})
   endif()
 else()
-  set(ARMA_MINOR_ALT ${ARMA_MINOR})
+  set(ARMA_VERSION_MINOR_ALT ${ARMA_VERSION_MINOR})
 endif()
 
 
@@ -323,82 +411,28 @@ message(STATUS "CMAKE_CXX_FLAGS           = ${CMAKE_CXX_FLAGS}"          )
 message(STATUS "CMAKE_SHARED_LINKER_FLAGS = ${CMAKE_SHARED_LINKER_FLAGS}")
 message(STATUS "CMAKE_REQUIRED_INCLUDES   = ${CMAKE_REQUIRED_INCLUDES}"  )
 
+
 add_library( armadillo ${PROJECT_SOURCE_DIR}/src/wrapper.cpp )
 target_link_libraries( armadillo ${ARMA_LIBS} )
-set_target_properties(armadillo PROPERTIES VERSION ${ARMA_MAJOR}.${ARMA_MINOR_ALT}.${ARMA_PATCH} SOVERSION ${ARMA_MAJOR})
+target_include_directories(armadillo INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+set_target_properties(armadillo PROPERTIES VERSION ${ARMA_VERSION_MAJOR}.${ARMA_VERSION_MINOR_ALT}.${ARMA_VERSION_PATCH} SOVERSION ${ARMA_VERSION_MAJOR})
 
 
 ################################################################################
 # INSTALL CONFIGURATION
 
 
-# As Red Hat Enterprise Linux (and related systems such as Fedora)
-# does not search /usr/local/lib by default, we need to place the
-# library in either /usr/lib or /usr/lib64
-
-if(NOT APPLE)
-  if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    message(STATUS "*** CMAKE_INSTALL_PREFIX was initalised by cmake to the default value of ${CMAKE_INSTALL_PREFIX}")
-    message(STATUS "*** CMAKE_INSTALL_PREFIX changed to /usr")
-    unset(CMAKE_INSTALL_PREFIX)
-    set(CMAKE_INSTALL_PREFIX "/usr")
-    #set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "install prefix" FORCE)
-  endif()
-endif()
-
-# Allow for the "lib" directory to be specified on the command line
-if(NOT INSTALL_LIB_DIR)
-  set(INSTALL_LIB_DIR "lib")
-  if(UNIX AND NOT APPLE)   # I don't know how Mac OS handles 64 bit systems
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      message(STATUS "*** Detected 64 bit system")
-      # use "lib64" only on systems that have it (eg. Fedora, Red Hat).
-      # if installing in /usr/local/, the use of lib64 might be unreliable on systems which have /usr/local/lib64 but don't use it
-      if(IS_DIRECTORY "${CMAKE_INSTALL_PREFIX}/lib64")
-        unset(INSTALL_LIB_DIR)
-        set(INSTALL_LIB_DIR "lib64")
-        message(STATUS "*** ${CMAKE_INSTALL_PREFIX}/lib64/ exists, so destination directory for the run-time library changed to ${CMAKE_INSTALL_PREFIX}/lib64/")
-        message(STATUS "*** Your system and/or compiler must search ${CMAKE_INSTALL_PREFIX}/lib64/ during linking")
-      endif()
-    endif()
-  endif()
-endif()
-
-# Allow for the "include" directory to be specified on the command line
-
-if(NOT INSTALL_INCLUDE_DIR)
-  set(INSTALL_INCLUDE_DIR "include")
-endif()
-
-# We use data dir to store files shared with other programs 
-# like the ArmadilloConfig.cmake file.
-if(NOT INSTALL_DATA_DIR)
-  set(INSTALL_DATA_DIR "share")
-endif()
-
-# executables destination
-if(NOT INSTALL_BIN_DIR)
-  set(INSTALL_BIN_DIR "bin")
-endif()
-
-# Make relative paths absolute so we can write them in Config.cmake files
-foreach(p LIB INCLUDE DATA BIN)
-  set(var INSTALL_${p}_DIR)
-  if(NOT IS_ABSOLUTE "${${var}}")
-    set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
-  endif()
-endforeach()
-
-message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "INSTALL_LIB_DIR      = ${INSTALL_LIB_DIR}"     )
-message(STATUS "INSTALL_INCLUDE_DIR  = ${INSTALL_INCLUDE_DIR}" )
-message(STATUS "INSTALL_DATA_DIR     = ${INSTALL_DATA_DIR}"    )
-message(STATUS "INSTALL_BIN_DIR      = ${INSTALL_BIN_DIR}"    )
+message(STATUS ""                                                      )
+message(STATUS "CMAKE_INSTALL_PREFIX     = ${CMAKE_INSTALL_PREFIX}"    )
+message(STATUS "CMAKE_INSTALL_LIBDIR     = ${CMAKE_INSTALL_LIBDIR}"    )
+message(STATUS "CMAKE_INSTALL_INCLUDEDIR = ${CMAKE_INSTALL_INCLUDEDIR}")
+message(STATUS "CMAKE_INSTALL_DATADIR    = ${CMAKE_INSTALL_DATADIR}"   )
+message(STATUS "CMAKE_INSTALL_BINDIR     = ${CMAKE_INSTALL_BINDIR}"    )
 
 
 # Note that the trailing / character in "include/" is critical
 
-install(DIRECTORY ${PROJECT_BINARY_DIR}/tmp/include/ DESTINATION ${INSTALL_INCLUDE_DIR}
+install(DIRECTORY ${PROJECT_BINARY_DIR}/tmp/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 PATTERN ".svn" EXCLUDE
 PATTERN "*.cmake" EXCLUDE
 PATTERN "*~" EXCLUDE
@@ -406,9 +440,9 @@ PATTERN "*orig" EXCLUDE
 )
 
 install(TARGETS armadillo EXPORT ArmadilloLibraryDepends
-  ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
-  LIBRARY DESTINATION ${INSTALL_LIB_DIR}
-  RUNTIME DESTINATION ${INSTALL_BIN_DIR})
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
   
 # Export the package for use from the build-tree
 # (this registers the build-tree with a global CMake-registry)
@@ -416,7 +450,7 @@ export(PACKAGE armadillo)
 
 ## LOCAL FILES
 # Create ArmadilloConfig.cmake file for the use from the build tree
-set(ARMADILLO_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
+set(ARMADILLO_INCLUDE_DIRS "${PROJECT_BINARY_DIR}/tmp/include")
 set(ARMADILLO_LIB_DIR      "${PROJECT_BINARY_DIR}")
 set(ARMADILLO_CMAKE_DIR    "${PROJECT_BINARY_DIR}")
 
@@ -430,19 +464,18 @@ message(STATUS "Generating '${PROJECT_BINARY_DIR}/ArmadilloConfigVersion.cmake'"
 configure_file(${PROJECT_SOURCE_DIR}/cmake_aux/InstallFiles/ArmadilloConfigVersion.cmake.in
   "${PROJECT_BINARY_DIR}/ArmadilloConfigVersion.cmake" @ONLY)
 
-
 # Install the export set for use with the install-tree
 install(EXPORT ArmadilloLibraryDepends DESTINATION
-  "${INSTALL_DATA_DIR}/Armadillo/CMake"
+  "${CMAKE_INSTALL_DATADIR}/Armadillo/CMake"
   COMPONENT dev)
 
 
 ## GLOBAL INSTALL FILES
 # Create ArmadilloConfig.cmake file for the use from the install tree
 # and install it
-set(ARMADILLO_INCLUDE_DIRS "${INSTALL_INCLUDE_DIR}")
-set(ARMADILLO_LIB_DIR      "${INSTALL_LIB_DIR}")
-set(ARMADILLO_CMAKE_DIR    "${INSTALL_DATA_DIR}/Armadillo/CMake")
+set(ARMADILLO_INCLUDE_DIRS "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+set(ARMADILLO_LIB_DIR      "${CMAKE_INSTALL_FULL_LIBDIR}")
+set(ARMADILLO_CMAKE_DIR    "${CMAKE_INSTALL_FULL_DATADIR}/Armadillo/CMake")
 
 
 message(STATUS "Generating '${PROJECT_BINARY_DIR}/InstallFiles/ArmadilloConfig.cmake'")
@@ -459,3 +492,14 @@ install(FILES
   "${PROJECT_BINARY_DIR}/InstallFiles/ArmadilloConfig.cmake"
   "${PROJECT_BINARY_DIR}/InstallFiles/ArmadilloConfigVersion.cmake"
   DESTINATION "${ARMADILLO_CMAKE_DIR}" COMPONENT dev)
+
+
+# pkgconfig related
+
+message(STATUS "Copying ${PROJECT_SOURCE_DIR}/misc/ to ${PROJECT_BINARY_DIR}/tmp/misc/")
+file(COPY ${PROJECT_SOURCE_DIR}/misc/ DESTINATION ${PROJECT_BINARY_DIR}/tmp/misc/)
+
+message(STATUS "Generating '${PROJECT_BINARY_DIR}/tmp/misc/armadillo.pc'")
+configure_file(${PROJECT_BINARY_DIR}/tmp/misc/armadillo.pc.in "${PROJECT_BINARY_DIR}/tmp/misc/armadillo.pc" @ONLY)
+
+install(FILES "${PROJECT_BINARY_DIR}/tmp/misc/armadillo.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)

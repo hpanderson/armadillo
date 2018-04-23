@@ -1,13 +1,17 @@
-// Copyright (C) 2011-2014 National ICT Australia (NICTA)
-//
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-// -------------------------------------------------------------------
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// Written by Conrad Sanderson - http://conradsanderson.id.au
-// Written by Ryan Curtin
-// Written by Matthew Amidon
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup SpMat
@@ -26,7 +30,7 @@ SpMat<eT>::iterator_base::iterator_base()
   , internal_col(0)
   , internal_pos(0)
   {
-  // Technically this iterator is invalid (it may not point to a real element)
+  // Technically this iterator is invalid (it does not point to a valid element)
   }
 
 
@@ -38,7 +42,7 @@ SpMat<eT>::iterator_base::iterator_base(const SpMat<eT>& in_M)
   , internal_col(0)
   , internal_pos(0)
   {
-  // Technically this iterator is invalid (it may not point to a real element)
+  // Technically this iterator is invalid (it may not point to a valid element)
   }
 
 
@@ -56,8 +60,7 @@ SpMat<eT>::iterator_base::iterator_base(const SpMat<eT>& in_M, const uword in_co
 
 
 template<typename eT>
-inline
-arma_hot
+arma_inline
 eT
 SpMat<eT>::iterator_base::operator*() const
   {
@@ -168,7 +171,7 @@ SpMat<eT>::const_iterator::operator++()
 
 template<typename eT>
 inline
-arma_hot
+arma_warn_unused
 typename SpMat<eT>::const_iterator
 SpMat<eT>::const_iterator::operator++(int)
   {
@@ -211,7 +214,7 @@ SpMat<eT>::const_iterator::operator--()
 
 template<typename eT>
 inline
-arma_hot
+arma_warn_unused
 typename SpMat<eT>::const_iterator
 SpMat<eT>::const_iterator::operator--(int)
   {
@@ -345,7 +348,7 @@ SpMat<eT>::iterator::operator++()
 
 template<typename eT>
 inline
-arma_hot
+arma_warn_unused
 typename SpMat<eT>::iterator
 SpMat<eT>::iterator::operator++(int)
   {
@@ -372,7 +375,7 @@ SpMat<eT>::iterator::operator--()
 
 template<typename eT>
 inline
-arma_hot
+arma_warn_unused
 typename SpMat<eT>::iterator
 SpMat<eT>::iterator::operator--(int)
   {
@@ -479,19 +482,25 @@ SpMat<eT>::const_row_iterator::const_row_iterator(const SpMat<eT>& in_M, uword i
   , internal_row(0)
   , actual_pos(0)
   {
-  // This is slow.  It needs to be rewritten.
-  // So we have a destination we want to be just after, but don't know what position that is.  Make another iterator to find out...
+  // TODO: replace with more efficient implementation
+  
+  // So we have a destination we want to be just after,
+  // but don't know what position that is.
+  // Make another iterator to find out.
+  
   const_row_iterator it(in_M, 0);
+  
   while((it.row() < in_row) || ((it.row() == in_row) && (it.col() < in_col)))
     {
-    it++;
+    ++it;
     }
-
+  
   // Now that it is at the right place, take its position.
   iterator_base::internal_col = it.internal_col;
   iterator_base::internal_pos = it.internal_pos;
+  
   internal_row = it.internal_row;
-  actual_pos = it.actual_pos;
+  actual_pos   = it.actual_pos;
   }
 
 
@@ -568,7 +577,7 @@ SpMat<eT>::const_row_iterator::operator++()
  */
 template<typename eT>
 inline
-arma_hot
+arma_warn_unused
 typename SpMat<eT>::const_row_iterator
 SpMat<eT>::const_row_iterator::operator++(int)
   {
@@ -628,7 +637,7 @@ SpMat<eT>::const_row_iterator::operator--()
  */
 template<typename eT>
 inline
-arma_hot
+arma_warn_unused
 typename SpMat<eT>::const_row_iterator
 SpMat<eT>::const_row_iterator::operator--(int)
   {
@@ -762,7 +771,7 @@ SpMat<eT>::row_iterator::operator++()
 
 template<typename eT>
 inline
-arma_hot
+arma_warn_unused
 typename SpMat<eT>::row_iterator
 SpMat<eT>::row_iterator::operator++(int)
   {
@@ -789,7 +798,7 @@ SpMat<eT>::row_iterator::operator--()
 
 template<typename eT>
 inline
-arma_hot
+arma_warn_unused
 typename SpMat<eT>::row_iterator
 SpMat<eT>::row_iterator::operator--(int)
   {

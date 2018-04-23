@@ -1,13 +1,17 @@
-// Copyright (C) 2011-2012 National ICT Australia (NICTA)
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-// -------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Written by Conrad Sanderson - http://conradsanderson.id.au
-// Written by Ryan Curtin
-// Written by Matthew Amidon
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup SpSubview
@@ -33,10 +37,9 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
   const uword n_cols;
   const uword n_elem;
   const uword n_nonzero;
-
-  // So that SpValProxy can call add_element() and delete_element().
-  friend class SpValProxy<SpSubview<eT> >;
-
+  
+  friend class SpValProxy< SpSubview<eT> >;   // allow SpValProxy to call insert_element() and delete_element()
+  
   protected:
 
   arma_inline SpSubview(const SpMat<eT>& in_m, const uword in_row1, const uword in_col1, const uword in_n_rows, const uword in_n_cols);
@@ -68,7 +71,7 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
   template<typename T1> inline const SpSubview& operator*=(const SpBase<eT, T1>& x);
   template<typename T1> inline const SpSubview& operator%=(const SpBase<eT, T1>& x);
   template<typename T1> inline const SpSubview& operator/=(const SpBase<eT, T1>& x);
-
+  
   /*
   inline static void extract(SpMat<eT>& out, const SpSubview& in);
 
@@ -78,25 +81,27 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
   inline static void   div_inplace(Mat<eT>& out, const subview& in);
   */
 
+  inline void replace(const eT old_val, const eT new_val);
+
   inline void fill(const eT val);
   inline void zeros();
   inline void ones();
   inline void eye();
 
-  arma_hot inline SpValProxy<SpSubview<eT> > operator[](const uword i);
-  arma_hot inline eT                         operator[](const uword i) const;
+  arma_hot inline MapMat_svel<eT> operator[](const uword i);
+  arma_hot inline eT              operator[](const uword i) const;
 
-  arma_hot inline SpValProxy<SpSubview<eT> > operator()(const uword i);
-  arma_hot inline eT                         operator()(const uword i) const;
+  arma_hot inline MapMat_svel<eT> operator()(const uword i);
+  arma_hot inline eT              operator()(const uword i) const;
 
-  arma_hot inline SpValProxy<SpSubview<eT> > operator()(const uword in_row, const uword in_col);
-  arma_hot inline eT                         operator()(const uword in_row, const uword in_col) const;
+  arma_hot inline MapMat_svel<eT> operator()(const uword in_row, const uword in_col);
+  arma_hot inline eT              operator()(const uword in_row, const uword in_col) const;
 
-  arma_hot inline SpValProxy<SpSubview<eT> > at(const uword i);
-  arma_hot inline eT                         at(const uword i) const;
+  arma_hot inline MapMat_svel<eT> at(const uword i);
+  arma_hot inline eT              at(const uword i) const;
 
-  arma_hot inline SpValProxy<SpSubview<eT> > at(const uword in_row, const uword in_col);
-  arma_hot inline eT                         at(const uword in_row, const uword in_col) const;
+  arma_hot inline MapMat_svel<eT> at(const uword in_row, const uword in_col);
+  arma_hot inline eT              at(const uword in_row, const uword in_col) const;
 
   inline bool check_overlap(const SpSubview& x) const;
 
@@ -148,7 +153,7 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
     inline iterator_base(const SpSubview& in_M);
     inline iterator_base(const SpSubview& in_M, const uword col, const uword pos, const uword skip_pos);
 
-    inline eT operator*() const;
+    arma_inline eT operator*() const;
 
     // Don't hold location internally; call "dummy" methods to get that information.
     arma_inline uword row() const { return M.m.row_indices[internal_pos + skip_pos] - M.aux_row1; }
@@ -160,10 +165,9 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
     arma_aligned       uword      internal_pos;
     arma_aligned       uword      skip_pos; // not used in row_iterator or const_row_iterator
 
-    // So that we satisfy the STL iterator types.
     typedef std::bidirectional_iterator_tag iterator_category;
     typedef eT                              value_type;
-    typedef uword                           difference_type; // not certain on this one
+    typedef std::ptrdiff_t                  difference_type;  // TODO: not certain on this one
     typedef const eT*                       pointer;
     typedef const eT&                       reference;
     };
@@ -292,18 +296,18 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
   inline row_iterator       end_row();
   inline const_row_iterator end_row() const;
 
-  inline row_iterator       end_row(const uword row_num = 0);
-  inline const_row_iterator end_row(const uword row_num = 0) const;
+  inline row_iterator       end_row(const uword row_num);
+  inline const_row_iterator end_row(const uword row_num) const;
 
 
   private:
   friend class SpMat<eT>;
   SpSubview();
-
-  // For use by SpValProxy.  We just update n_nonzero and pass the call on to the matrix.
-  inline arma_hot arma_warn_unused eT&  add_element(const uword in_row, const uword in_col, const eT in_val = 0.0);
-  inline arma_hot                  void delete_element(const uword in_row, const uword in_col);
-
+  
+  inline arma_warn_unused eT&  insert_element(const uword in_row, const uword in_col, const eT in_val = eT(0));
+  inline                  void delete_element(const uword in_row, const uword in_col);
+  
+  inline void invalidate_cache() const;
   };
 
 /*

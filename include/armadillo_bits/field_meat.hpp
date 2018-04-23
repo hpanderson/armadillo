@@ -1,12 +1,17 @@
-// Copyright (C) 2008-2015 National ICT Australia (NICTA)
+// Copyright 2008-2016 Conrad Sanderson (http://conradsanderson.id.au)
+// Copyright 2008-2016 National ICT Australia (NICTA)
 // 
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-// -------------------------------------------------------------------
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Written by Conrad Sanderson - http://conradsanderson.id.au
-// Written by Ian Cullinan
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ------------------------------------------------------------------------
 
 
 //! \addtogroup field
@@ -21,16 +26,10 @@ field<oT>::~field()
   
   delete_objects();
   
-  if(n_elem > field_prealloc_n_elem::val)
-    {
-    delete [] mem;
-    }
+  if(n_elem > field_prealloc_n_elem::val)  { delete [] mem; }
   
-  if(arma_config::debug == true)
-    {
-    // try to expose buggy user code that accesses deleted objects
-    mem = 0;
-    }
+  // try to expose buggy user code that accesses deleted objects
+  if(arma_config::debug)  { mem = 0; }
   }
 
 
@@ -59,7 +58,7 @@ field<oT>::field(const field& x)
   , n_elem(0)
   , mem(0)
   {
-  arma_extra_debug_sigprint(arma_boost::format("this = %x   x = %x") % this % &x);
+  arma_extra_debug_sigprint(arma_str::format("this = %x   x = %x") % this % &x);
   
   init(x);
   }
@@ -69,7 +68,7 @@ field<oT>::field(const field& x)
 //! construct a field from a given field
 template<typename oT>
 inline
-const field<oT>&
+field<oT>&
 field<oT>::operator=(const field& x)
   {
   arma_extra_debug_sigprint();
@@ -100,7 +99,7 @@ field<oT>::field(const subview_field<oT>& X)
 //! construct a field from subview_field (e.g. construct a field from a delayed subfield operation)
 template<typename oT>
 inline
-const field<oT>&
+field<oT>&
 field<oT>::operator=(const subview_field<oT>& X)
   {
   arma_extra_debug_sigprint();
@@ -202,7 +201,7 @@ inline
 void
 field<oT>::set_size(const uword n_elem_in)
   {
-  arma_extra_debug_sigprint(arma_boost::format("n_elem_in = %d") % n_elem_in);
+  arma_extra_debug_sigprint(arma_str::format("n_elem_in = %d") % n_elem_in);
   
   init(n_elem_in, 1);
   }
@@ -215,7 +214,7 @@ inline
 void
 field<oT>::set_size(const uword n_rows_in, const uword n_cols_in)
   {
-  arma_extra_debug_sigprint(arma_boost::format("n_rows_in = %d, n_cols_in = %d") % n_rows_in % n_cols_in);
+  arma_extra_debug_sigprint(arma_str::format("n_rows_in = %d, n_cols_in = %d") % n_rows_in % n_cols_in);
   
   init(n_rows_in, n_cols_in);
   }
@@ -228,7 +227,7 @@ inline
 void
 field<oT>::set_size(const uword n_rows_in, const uword n_cols_in, const uword n_slices_in)
   {
-  arma_extra_debug_sigprint(arma_boost::format("n_rows_in = %d, n_cols_in = %d, n_slices_in = %d") % n_rows_in % n_cols_in % n_slices_in);
+  arma_extra_debug_sigprint(arma_str::format("n_rows_in = %d, n_cols_in = %d, n_slices_in = %d") % n_rows_in % n_cols_in % n_slices_in);
   
   init(n_rows_in, n_cols_in, n_slices_in);
   }
@@ -274,7 +273,7 @@ field<oT>::set_size(const SizeCube& s)
   
   template<typename oT>
   inline
-  const field<oT>&
+  field<oT>&
   field<oT>::operator=(const std::initializer_list<oT>& list)
     {
     arma_extra_debug_sigprint();
@@ -312,7 +311,7 @@ field<oT>::set_size(const SizeCube& s)
   
   template<typename oT>
   inline
-  const field<oT>&
+  field<oT>&
   field<oT>::operator=(const std::initializer_list< std::initializer_list<oT> >& list)
     {
     arma_extra_debug_sigprint();
@@ -334,7 +333,7 @@ field<oT>::set_size(const SizeCube& s)
         }
       else
         {
-        arma_check( (uword((*it).size()) != x_n_cols), "Mat::init(): inconsistent number of columns in initialiser list" );
+        arma_check( (uword((*it).size()) != x_n_cols), "field::init(): inconsistent number of columns in initialiser list" );
         }
       }
     
@@ -376,7 +375,7 @@ field<oT>::set_size(const SizeCube& s)
     , n_slices(X.n_slices)
     , n_elem  (X.n_elem  )
     {
-    arma_extra_debug_sigprint(arma_boost::format("this = %x   X = %x") % this % &X);
+    arma_extra_debug_sigprint(arma_str::format("this = %x   X = %x") % this % &X);
     
     if(n_elem > field_prealloc_n_elem::val)
       {
@@ -399,10 +398,12 @@ field<oT>::set_size(const SizeCube& s)
   
   template<typename oT>
   inline
-  const field<oT>&
+  field<oT>&
   field<oT>::operator=(field<oT>&& X)
     {
-    arma_extra_debug_sigprint(arma_boost::format("this = %x   X = %x") % this % &X);
+    arma_extra_debug_sigprint(arma_str::format("this = %x   X = %x") % this % &X);
+    
+    reset();
     
     access::rw(n_rows  ) = X.n_rows;
     access::rw(n_cols  ) = X.n_cols;
@@ -496,7 +497,7 @@ arma_inline
 oT&
 field<oT>::operator() (const uword i)
   {
-  arma_debug_check( (i >= n_elem), "field::operator(): index out of bounds");
+  arma_debug_check( (i >= n_elem), "field::operator(): index out of bounds" );
   return (*mem[i]);
   }
 
@@ -508,7 +509,7 @@ arma_inline
 const oT&
 field<oT>::operator() (const uword i) const
   {
-  arma_debug_check( (i >= n_elem), "field::operator(): index out of bounds");
+  arma_debug_check( (i >= n_elem), "field::operator(): index out of bounds" );
   return (*mem[i]);
   }
 
@@ -520,7 +521,7 @@ arma_inline
 oT&
 field<oT>::operator() (const uword in_row, const uword in_col)
   {
-  arma_debug_check( ((in_row >= n_rows) || (in_col >= n_cols)), "field::operator(): index out of bounds");
+  arma_debug_check( ((in_row >= n_rows) || (in_col >= n_cols) || (0 >= n_slices) ), "field::operator(): index out of bounds" );
   return (*mem[in_row + in_col*n_rows]);
   }
 
@@ -532,7 +533,7 @@ arma_inline
 const oT&
 field<oT>::operator() (const uword in_row, const uword in_col) const
   {
-  arma_debug_check( ((in_row >= n_rows) || (in_col >= n_cols)), "field::operator(): index out of bounds");
+  arma_debug_check( ((in_row >= n_rows) || (in_col >= n_cols) || (0 >= n_slices) ), "field::operator(): index out of bounds" );
   return (*mem[in_row + in_col*n_rows]);
   }
 
@@ -544,7 +545,7 @@ arma_inline
 oT&
 field<oT>::operator() (const uword in_row, const uword in_col, const uword in_slice)
   {
-  arma_debug_check( ((in_row >= n_rows) || (in_col >= n_cols) || (in_slice >= n_slices)), "field::operator(): index out of bounds");
+  arma_debug_check( ((in_row >= n_rows) || (in_col >= n_cols) || (in_slice >= n_slices)), "field::operator(): index out of bounds" );
   return (*mem[in_row + in_col*n_rows + in_slice*(n_rows*n_cols)]);
   }
 
@@ -556,7 +557,7 @@ arma_inline
 const oT&
 field<oT>::operator() (const uword in_row, const uword in_col, const uword in_slice) const
   {
-  arma_debug_check( ((in_row >= n_rows) || (in_col >= n_cols) || (in_slice >= n_slices)), "field::operator(): index out of bounds");
+  arma_debug_check( ((in_row >= n_rows) || (in_col >= n_cols) || (in_slice >= n_slices)), "field::operator(): index out of bounds" );
   return (*mem[in_row + in_col*n_rows + in_slice*(n_rows*n_cols)]);
   }
 
@@ -670,7 +671,7 @@ field<oT>::col(const uword col_num)
   
   arma_debug_check( (n_slices >= 2), "field::col(): field must be 2D" );
 
-  arma_debug_check( (col_num >= n_cols), "field::col(): out of bounds");
+  arma_debug_check( (col_num >= n_cols), "field::col(): out of bounds" );
   
   return subview_field<oT>(*this, 0, col_num, n_rows, 1);
   }
@@ -687,7 +688,7 @@ field<oT>::col(const uword col_num) const
   
   arma_debug_check( (n_slices >= 2), "field::col(): field must be 2D" );
 
-  arma_debug_check( (col_num >= n_cols), "field::col(): out of bounds");
+  arma_debug_check( (col_num >= n_cols), "field::col(): out of bounds" );
   
   return subview_field<oT>(*this, 0, col_num, n_rows, 1);
   }
@@ -702,7 +703,7 @@ field<oT>::slice(const uword slice_num)
   {
   arma_extra_debug_sigprint();
   
-  arma_debug_check( (slice_num >= n_slices), "field::slice(): out of bounds");
+  arma_debug_check( (slice_num >= n_slices), "field::slice(): out of bounds" );
   
   return subview_field<oT>(*this, 0, 0, slice_num, n_rows, n_cols, 1);
   }
@@ -717,7 +718,7 @@ field<oT>::slice(const uword slice_num) const
   {
   arma_extra_debug_sigprint();
   
-  arma_debug_check( (slice_num >= n_slices), "field::slice(): out of bounds");
+  arma_debug_check( (slice_num >= n_slices), "field::slice(): out of bounds" );
   
   return subview_field<oT>(*this, 0, 0, slice_num, n_rows, n_cols, 1);
   }
@@ -1338,14 +1339,14 @@ field<oT>::print(const std::string extra_text) const
   
   if(extra_text.length() != 0)
     {
-    const std::streamsize orig_width = ARMA_DEFAULT_OSTREAM.width();
+    const std::streamsize orig_width = get_cout_stream().width();
     
-    ARMA_DEFAULT_OSTREAM << extra_text << '\n';
-  
-    ARMA_DEFAULT_OSTREAM.width(orig_width);
+    get_cout_stream() << extra_text << '\n';
+    
+    get_cout_stream().width(orig_width);
     }
   
-  arma_ostream::print(ARMA_DEFAULT_OSTREAM, *this);
+  arma_ostream::print(get_cout_stream(), *this);
   }
 
 
@@ -1711,6 +1712,7 @@ field<oT>::in_range(const uword in_row, const uword in_col, const uword in_slice
 
 template<typename oT>
 inline
+arma_cold
 bool
 field<oT>::save(const std::string name, const file_type type, const bool print_status) const
   {
@@ -1738,6 +1740,7 @@ field<oT>::save(const std::string name, const file_type type, const bool print_s
 
 template<typename oT>
 inline
+arma_cold
 bool
 field<oT>::save(std::ostream& os, const file_type type, const bool print_status) const
   {
@@ -1765,6 +1768,7 @@ field<oT>::save(std::ostream& os, const file_type type, const bool print_status)
 
 template<typename oT>
 inline
+arma_cold
 bool
 field<oT>::load(const std::string name, const file_type type, const bool print_status)
   {
@@ -1797,6 +1801,7 @@ field<oT>::load(const std::string name, const file_type type, const bool print_s
 
 template<typename oT>
 inline
+arma_cold
 bool
 field<oT>::load(std::istream& is, const file_type type, const bool print_status)
   {
@@ -1829,6 +1834,7 @@ field<oT>::load(std::istream& is, const file_type type, const bool print_status)
 
 template<typename oT>
 inline
+arma_cold
 bool
 field<oT>::quiet_save(const std::string name, const file_type type) const
   {
@@ -1841,6 +1847,7 @@ field<oT>::quiet_save(const std::string name, const file_type type) const
 
 template<typename oT>
 inline
+arma_cold
 bool
 field<oT>::quiet_save(std::ostream& os, const file_type type) const
   {
@@ -1853,6 +1860,7 @@ field<oT>::quiet_save(std::ostream& os, const file_type type) const
 
 template<typename oT>
 inline
+arma_cold
 bool
 field<oT>::quiet_load(const std::string name, const file_type type)
   {
@@ -1865,6 +1873,7 @@ field<oT>::quiet_load(const std::string name, const file_type type)
 
 template<typename oT>
 inline
+arma_cold
 bool
 field<oT>::quiet_load(std::istream& is, const file_type type)
   {
@@ -1930,7 +1939,7 @@ inline
 void
 field<oT>::init(const uword n_rows_in, const uword n_cols_in, const uword n_slices_in)
   {
-  arma_extra_debug_sigprint( arma_boost::format("n_rows_in = %d, n_cols_in = %d, n_slices_in = %d") % n_rows_in % n_cols_in % n_slices_in );
+  arma_extra_debug_sigprint( arma_str::format("n_rows_in = %d, n_cols_in = %d, n_slices_in = %d") % n_rows_in % n_cols_in % n_slices_in );
   
   #if (defined(ARMA_USE_CXX11) || defined(ARMA_64BIT_WORD))
     const char* error_message = "field::init(): requested size is too large";
@@ -1969,7 +1978,14 @@ field<oT>::init(const uword n_rows_in, const uword n_cols_in, const uword n_slic
     
     if(n_elem_new <= field_prealloc_n_elem::val)
       {
-      mem = mem_local;
+      if(n_elem_new == 0)
+        {
+        mem = NULL;
+        }
+      else
+        {
+        mem = mem_local;
+        }
       }
     else
       {
@@ -1977,20 +1993,10 @@ field<oT>::init(const uword n_rows_in, const uword n_cols_in, const uword n_slic
       arma_check_bad_alloc( (mem == 0), "field::init(): out of memory" );
       }
     
-    access::rw(n_elem) = n_elem_new;
-    
-    if(n_elem_new == 0)
-      {
-      access::rw(n_rows)   = 0;
-      access::rw(n_cols)   = 0;
-      access::rw(n_slices) = 0;
-      }
-    else
-      {
-      access::rw(n_rows)   = n_rows_in;
-      access::rw(n_cols)   = n_cols_in;
-      access::rw(n_slices) = n_slices_in;
-      }
+    access::rw(n_rows)   = n_rows_in;
+    access::rw(n_cols)   = n_cols_in;
+    access::rw(n_slices) = n_slices_in;
+    access::rw(n_elem)   = n_elem_new;
     
     create_objects();
     }
@@ -2003,7 +2009,7 @@ inline
 void
 field<oT>::delete_objects()
   {
-  arma_extra_debug_sigprint( arma_boost::format("n_elem = %d") % n_elem );
+  arma_extra_debug_sigprint( arma_str::format("n_elem = %d") % n_elem );
   
   for(uword i=0; i<n_elem; ++i)
     {
@@ -2022,7 +2028,7 @@ inline
 void
 field<oT>::create_objects()
   {
-  arma_extra_debug_sigprint( arma_boost::format("n_elem = %d") % n_elem );
+  arma_extra_debug_sigprint( arma_str::format("n_elem = %d") % n_elem );
   
   for(uword i=0; i<n_elem; ++i)
     {
